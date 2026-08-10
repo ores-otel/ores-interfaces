@@ -32,7 +32,16 @@ they do not grant roles directly from PAC groups, Unix principals, or key commen
 
 ```sh
 zed add ores-otel/ores-interfaces@^0.1
+zed install
+```
+
+After the first registry-backed resolution creates and commits `.zpkg.lock`, CI and
+repeatable deployments should use:
+
+```sh
 zed install --frozen
 ```
 
-The root `.zpkg.toml` publishes one coordinated package with per-language targets.
+The root `.zpkg.toml` publishes one coordinated package with per-language targets. A
+placeholder lock is intentionally not committed because it would not prove artifact
+provenance or direct dependency coverage.
