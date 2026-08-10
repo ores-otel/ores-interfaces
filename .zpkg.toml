@@ -17,8 +17,15 @@ dir = "zed_modules"
 [publish]
 include_readme = true
 tag_format = "v{version}"
-exclude = [".github/**", "zed_modules/**", "**/target/**", "**/node_modules/**", "**/__pycache__/**", "**/.dart_tool/**", "**/build/**", "**/*.class"]
+exclude = [".github/**", ".zed/**", ".zpkg.lock", "zed_modules/**", "**/target/**", "**/node_modules/**", "**/__pycache__/**", "**/.dart_tool/**", "**/build/**", "**/*.class"]
 smoke_test = "python3 scripts/check_contracts.py"
+
+# Publish the canonical aggregate identity used by dependent repositories.
+# Language targets remain independently installable below.
+[targets.repository]
+dir = "."
+name = "ores-interfaces"
+adapter = "none"
 
 [targets.contracts]
 dir = "contracts"
