@@ -3,13 +3,17 @@
 Canonical, language-neutral interfaces shared across OreSoftware organizations.
 
 The repository is deliberately **contract-first**. `contracts/ores-platform/v1/schema.json`
-is the authority; language folders are reviewed bindings for services and clients. Product
-repositories may extend these types in their own namespaces, but must not weaken tenant,
-audience, assurance, retention, or redaction semantics.
+is the authority for portfolio-wide identity, request, error, capability, and security-event
+shapes. `contracts/shared-auth-admin/v1/schema.json` adds the read-only organization dashboard
+projection used by Shared Auth. Product repositories may extend these types in their own
+namespaces, but must not weaken tenant, audience, assurance, retention, pagination, or
+redaction semantics.
 
 ## Layout
 
-- `contracts/` — JSON Schema 2020-12 contracts and security invariants.
+- `contracts/ores-platform/v1` — portfolio-wide JSON Schema 2020-12 contracts.
+- `contracts/shared-auth-admin/v1` — organization dropdown, project scope, users, sessions,
+  role bindings, capability truth, and dashboard redaction contracts.
 - `languages/rust` — zero-dependency Rust data types.
 - `languages/typescript` — runtime constants plus TypeScript declarations.
 - `languages/go` — Go structs and enums.
@@ -17,16 +21,30 @@ audience, assurance, retention, or redaction semantics.
 - `languages/dart` — Dart enums and immutable value types.
 - `languages/java` — Java 17 records and enums.
 - `languages/swift` — Swift `Codable` value types.
-- `scripts/check_contracts.py` — offline drift and secret-safety checks.
+- `scripts/check_contracts.py` — offline drift, capability-truth, redaction, and secret-safety
+  checks.
+
+## Shared Auth administration boundary
+
+The dashboard contract is intentionally read-only and organization-scoped:
+
+- every request selects an exact organization; there is no cross-organization fallback;
+- role bindings always carry an explicit organization/project/repository scope;
+- session IDs, bearer tokens, raw IP addresses, and biometric material never enter the view;
+- SSH and Kerberos capability records require online introspection and cannot exceed AAL1;
+- OpenPGP is provenance-only and cannot mint a Shared Auth token;
+- face/fingerprint/thumbprint language means local platform-authenticator user verification
+  behind WebAuthn, not collection or retention of images or templates;
+- non-implemented capabilities must advertise `productionEnabled: false`.
 
 ## Authentication boundaries
 
 `platform_biometric` means a platform authenticator performed local user verification
 (WebAuthn/passkey). Raw face images, face templates, fingerprint images, fingerprint
 templates, or modality-specific secrets are never part of these contracts. OpenPGP is a
-provenance mechanism unless an application explicitly adopts a separately reviewed auth
-profile. Kerberos and SSH integrations must exchange short-lived, audience-bound tokens;
-they do not grant roles directly from PAC groups, Unix principals, or key comments.
+provenance mechanism. Kerberos and SSH integrations use bounded, audience-specific,
+revocation-aware credential exchanges; PAC groups, Unix principals, and key comments never
+grant application roles directly.
 
 ## Zed package
 
