@@ -20,13 +20,8 @@ tag_format = "v{version}"
 exclude = [".github/**", ".zed/**", ".zpkg.lock", "zed_modules/**", "**/target/**", "**/node_modules/**", "**/__pycache__/**", "**/.dart_tool/**", "**/build/**", "**/*.class"]
 smoke_test = "python3 scripts/check_contracts.py"
 
-# Publish the canonical aggregate identity used by dependent repositories.
-# Language targets remain independently installable below.
-[targets.repository]
-dir = "."
-name = "ores-interfaces"
-adapter = "none"
-
+# The root [package] is the canonical ores-otel/ores-interfaces artifact.
+# These targets publish independently installable language slices.
 [targets.contracts]
 dir = "contracts"
 name = "ores-platform-contracts"
