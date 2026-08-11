@@ -1,17 +1,33 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from collections import Counter
+from importlib.metadata import PackageNotFoundError, version
 import json
 import pathlib
 import re
 from copy import deepcopy
 from datetime import datetime
+from typing import Any
+
+try:
+    from jsonschema import Draft202012Validator, FormatChecker
+    from jsonschema.exceptions import best_match
+except ModuleNotFoundError as error:
+    raise SystemExit(
+        "missing pinned contract validator dependency; install it with "
+        "`python3 -m pip install --require-hashes "
+        "--requirement scripts/requirements-contracts.lock`"
+    ) from error
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+VALIDATOR_LOCK = ROOT / "scripts/requirements-contracts.lock"
 PLATFORM_SCHEMA = ROOT / "contracts/ores-platform/v1/schema.json"
 ADMIN_SCHEMA = ROOT / "contracts/shared-auth-admin/v1/schema.json"
 ADMIN_EXAMPLE = ROOT / "contracts/shared-auth-admin/v1/examples/dashboard-response.json"
 ADMIN_EXAMPLES = ROOT / "contracts/shared-auth-admin/v1/examples"
+ADMIN_VALID_FIXTURES = ROOT / "contracts/shared-auth-admin/v1/fixtures/valid"
+ADMIN_INVALID_FIXTURES = ROOT / "contracts/shared-auth-admin/v1/fixtures/invalid"
 LANGUAGES = {"rust", "typescript", "go", "python", "dart", "java", "swift"}
 AUTH_METHODS = {
     "jwt",
@@ -30,6 +46,63 @@ REVOCATION_CONTRACTS = {
     "GlobalRevocationPreview",
     "GlobalRevocationRequest",
     "GlobalRevocationOperation",
+}
+ADMIN_CONTRACTS = (
+    "DashboardQuery",
+    "DashboardResponse",
+    "OrganizationOption",
+    "ProjectOption",
+    "UserProjection",
+    "SessionProjection",
+    "RoleBindingProjection",
+    "CredentialCapabilityProjection",
+    "PrincipalSearchRequest",
+    "PrincipalSearchResult",
+    "GlobalRevocationPreview",
+    "GlobalRevocationRequest",
+    "GlobalRevocationOperation",
+    "DirectoryAdminGrant",
+    "DirectoryAdminGrantSet",
+)
+DIRECTORY_ADMIN_SCOPES = {
+    "directory.dashboard.read",
+    "directory.users.read",
+    "directory.sessions.read",
+    "directory.roles.read",
+    "directory.revocations.read",
+    "directory.revocations.execute",
+}
+DIRECTORY_ADMIN_ROLES = {
+    "directory_admin",
+    "directory_security_operator",
+    "directory_auditor",
+}
+DIRECTORY_ADMIN_TYPES = {
+    "DirectoryAdminScope",
+    "DirectoryAdminRole",
+    "DirectoryAdminGrant",
+    "DirectoryAdminGrantSet",
+}
+DIRECTORY_ADMIN_FIELDS = {
+    "grantId",
+    "organizationId",
+    "projectIds",
+    "scopes",
+    "roles",
+    "grantedAt",
+    "expiresAt",
+    "principalId",
+    "audience",
+    "assurance",
+    "directoryGrants",
+    "evaluatedAt",
+    "exactOrganizationMatchRequired",
+    "crossOrganizationFallbackAllowed",
+    "rawEmailsPresent",
+}
+PINNED_VALIDATOR_PACKAGES = {
+    "jsonschema": "4.25.1",
+    "rfc3339-validator": "0.1.4",
 }
 REVOCATION_SCOPES = {
     "interactive_sessions",
@@ -131,6 +204,96 @@ FORBIDDEN = re.compile(
 )
 
 
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise AssertionError(message)
+
+
+def load_json(path: pathlib.Path) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise AssertionError(f"cannot load JSON fixture {path.relative_to(ROOT)}: {error}") from error
+
+
+def format_validation_error(error: Any) -> str:
+    path = "$"
+    for component in error.absolute_path:
+        if isinstance(component, int):
+            path += f"[{component}]"
+        else:
+            path += f".{component}"
+    return f"{path}: {error.message}"
+
+
+def require_valid(
+    validator: Draft202012Validator,
+    document: Any,
+    label: pathlib.Path | str,
+) -> None:
+    errors = list(validator.iter_errors(document))
+    if errors:
+        error = best_match(errors)
+        raise AssertionError(
+            f"expected valid admin fixture {label}; {format_validation_error(error)}"
+        )
+
+
+def require_invalid(
+    validator: Draft202012Validator,
+    document: Any,
+    label: pathlib.Path | str,
+) -> None:
+    if validator.is_valid(document):
+        raise AssertionError(f"expected invalid admin fixture {label}, but it validated")
+
+
+def require_restrictive_objects(node: Any, path: str = "$") -> None:
+    if isinstance(node, dict):
+        if node.get("type") == "object":
+            require(
+                node.get("additionalProperties") is False,
+                f"object schema at {path} must set additionalProperties to false",
+            )
+        for key, value in node.items():
+            require_restrictive_objects(value, f"{path}.{key}")
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            require_restrictive_objects(value, f"{path}[{index}]")
+
+
+def validate_discriminator(schema: dict[str, Any]) -> None:
+    expected = {contract: f"#/$defs/{contract}" for contract in ADMIN_CONTRACTS}
+    actual: dict[str, str] = {}
+    for index, branch in enumerate(schema.get("oneOf", [])):
+        properties = branch.get("properties", {})
+        contract = properties.get("contract", {}).get("const")
+        payload_ref = properties.get("payload", {}).get("$ref")
+        require(
+            isinstance(contract, str) and isinstance(payload_ref, str),
+            f"admin oneOf branch {index} must bind a contract const to a payload $ref",
+        )
+        require(contract not in actual, f"duplicate admin discriminator branch: {contract}")
+        actual[contract] = payload_ref
+    require(
+        actual == expected,
+        f"admin discriminator mapping drifted: actual={actual!r} expected={expected!r}",
+    )
+
+
+def validate_validator_dependencies() -> None:
+    require(VALIDATOR_LOCK.is_file(), "pinned contract validator lock is missing")
+    for package, expected in PINNED_VALIDATOR_PACKAGES.items():
+        try:
+            installed = version(package)
+        except PackageNotFoundError as error:
+            raise AssertionError(f"required validator package is missing: {package}") from error
+        require(
+            installed == expected,
+            f"validator dependency drift: {package}={installed}, expected {expected}",
+        )
+
+
 def timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
@@ -157,14 +320,17 @@ def validate_schema_value(
 
     reference = schema.get("$ref")
     if reference is not None:
-        assert isinstance(reference, str) and reference.startswith("#/$defs/"), f"unsupported ref at {path}: {reference}"
+        require(
+            isinstance(reference, str) and reference.startswith("#/$defs/"),
+            f"unsupported ref at {path}: {reference}",
+        )
         definition = reference.removeprefix("#/$defs/")
         validate_schema_value(value, root["$defs"][definition], root, path)
 
     if "const" in schema:
-        assert value == schema["const"], f"const mismatch at {path}: {value!r}"
+        require(value == schema["const"], f"const mismatch at {path}: {value!r}")
     if "enum" in schema:
-        assert value in schema["enum"], f"enum mismatch at {path}: {value!r}"
+        require(value in schema["enum"], f"enum mismatch at {path}: {value!r}")
 
     expected_types = schema.get("type")
     if isinstance(expected_types, str):
@@ -178,47 +344,62 @@ def validate_schema_value(
             "boolean": lambda candidate: isinstance(candidate, bool),
             "null": lambda candidate: candidate is None,
         }
-        assert any(type_matches[item](value) for item in expected_types), f"type mismatch at {path}: {value!r}"
+        require(
+            any(type_matches[item](value) for item in expected_types),
+            f"type mismatch at {path}: {value!r}",
+        )
 
     if isinstance(value, dict):
         required = set(schema.get("required", []))
-        assert required <= set(value), f"missing fields at {path}: {sorted(required - set(value))}"
+        require(
+            required <= set(value),
+            f"missing fields at {path}: {sorted(required - set(value))}",
+        )
         properties = schema.get("properties", {})
         if schema.get("additionalProperties") is False:
-            assert set(value) <= set(properties), f"additional fields at {path}: {sorted(set(value) - set(properties))}"
+            require(
+                set(value) <= set(properties),
+                f"additional fields at {path}: {sorted(set(value) - set(properties))}",
+            )
         for key, child in value.items():
             if key in properties:
                 validate_schema_value(child, properties[key], root, f"{path}.{key}")
 
     if isinstance(value, list):
         if "minItems" in schema:
-            assert len(value) >= schema["minItems"], f"too few items at {path}"
+            require(len(value) >= schema["minItems"], f"too few items at {path}")
         if "maxItems" in schema:
-            assert len(value) <= schema["maxItems"], f"too many items at {path}"
+            require(len(value) <= schema["maxItems"], f"too many items at {path}")
         if schema.get("uniqueItems"):
             canonical = [json.dumps(item, sort_keys=True, separators=(",", ":")) for item in value]
-            assert len(canonical) == len(set(canonical)), f"duplicate items at {path}"
+            require(len(canonical) == len(set(canonical)), f"duplicate items at {path}")
         if "items" in schema:
             for index, child in enumerate(value):
                 validate_schema_value(child, schema["items"], root, f"{path}[{index}]")
         if "contains" in schema:
-            assert any(schema_matches(item, schema["contains"], root) for item in value), f"contains failed at {path}"
+            require(
+                any(schema_matches(item, schema["contains"], root) for item in value),
+                f"contains failed at {path}",
+            )
 
     if isinstance(value, str):
         if "minLength" in schema:
-            assert len(value) >= schema["minLength"], f"string too short at {path}"
+            require(len(value) >= schema["minLength"], f"string too short at {path}")
         if "maxLength" in schema:
-            assert len(value) <= schema["maxLength"], f"string too long at {path}"
+            require(len(value) <= schema["maxLength"], f"string too long at {path}")
         if "pattern" in schema:
-            assert re.search(schema["pattern"], value), f"pattern mismatch at {path}: {value!r}"
+            require(
+                re.search(schema["pattern"], value) is not None,
+                f"pattern mismatch at {path}: {value!r}",
+            )
         if schema.get("format") == "date-time":
             timestamp(value)
 
     if isinstance(value, int) and not isinstance(value, bool):
         if "minimum" in schema:
-            assert value >= schema["minimum"], f"minimum failed at {path}"
+            require(value >= schema["minimum"], f"minimum failed at {path}")
         if "maximum" in schema:
-            assert value <= schema["maximum"], f"maximum failed at {path}"
+            require(value <= schema["maximum"], f"maximum failed at {path}")
 
     for constraint in schema.get("allOf", []):
         validate_schema_value(value, constraint, root, path)
@@ -235,20 +416,25 @@ def schema_matches(value: object, schema: dict[str, object] | bool, root: dict[s
 
 
 def validate_admin_contract() -> None:
-    schema = json.loads(ADMIN_SCHEMA.read_text(encoding="utf-8"))
-    assert schema["$schema"].endswith("2020-12/schema")
+    validate_validator_dependencies()
+    schema = load_json(ADMIN_SCHEMA)
+    assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+    Draft202012Validator.check_schema(schema)
+    require_restrictive_objects(schema)
+    validate_discriminator(schema)
+
+    format_checker = FormatChecker()
+    assert format_checker.conforms("2026-08-11T21:30:00Z", "date-time")
+    assert not format_checker.conforms("not-a-date-time", "date-time")
+    assert format_checker.conforms("10000000-0000-4000-8000-000000000001", "uuid")
+    assert not format_checker.conforms("not-a-uuid", "uuid")
+    validator = Draft202012Validator(schema, format_checker=format_checker)
+
     definitions = schema["$defs"]
     capabilities = definitions["CredentialCapabilityProjection"]
     dashboard = definitions["DashboardResponse"]
 
-    assert REVOCATION_CONTRACTS <= set(schema["properties"]["contract"]["enum"])
-    revocation_dispatch = {
-        item["if"]["properties"]["contract"]["const"]: item["then"]["properties"]["payload"]["$ref"]
-        for item in schema["allOf"]
-    }
-    assert revocation_dispatch == {
-        name: f"#/$defs/{name}" for name in REVOCATION_CONTRACTS
-    }
+    assert set(schema["properties"]["contract"]["enum"]) == set(ADMIN_CONTRACTS)
     assert set(definitions["RevocationScope"]["enum"]) == REVOCATION_SCOPES
     assert set(definitions["RevocationJobState"]["enum"]) == REVOCATION_JOB_STATES
     assert set(definitions["RevocationTargetState"]["enum"]) == REVOCATION_TARGET_STATES
@@ -309,6 +495,37 @@ def validate_admin_contract() -> None:
     for field in ("rawEmailsPresent", "rawTokensPresent", "rawBiometricMaterialPresent"):
         assert audit["properties"][field]["const"] is False
 
+    directory_grant = definitions["DirectoryAdminGrant"]
+    directory_grant_set = definitions["DirectoryAdminGrantSet"]
+    assert set(definitions["DirectoryAdminScope"]["enum"]) == DIRECTORY_ADMIN_SCOPES
+    assert set(definitions["DirectoryAdminRole"]["enum"]) == DIRECTORY_ADMIN_ROLES
+    assert directory_grant["properties"]["grantId"]["$ref"] == "#/$defs/Uuid"
+    assert directory_grant["properties"]["organizationId"]["$ref"] == "#/$defs/Uuid"
+    project_ids = directory_grant["properties"]["projectIds"]
+    assert project_ids["minItems"] == 1
+    assert project_ids["uniqueItems"] is True
+    assert project_ids["items"]["$ref"] == "#/$defs/Uuid"
+    assert "projectIds" not in directory_grant["required"]
+    assert directory_grant["properties"]["roles"]["contains"]["const"] == "directory_admin"
+    assert not ({"email", "rawEmail", "normalizedEmail"} & set(directory_grant["properties"]))
+
+    grant_set_properties = directory_grant_set["properties"]
+    assert grant_set_properties["schema"]["const"] == (
+        "ores.shared-auth-admin-directory-grant-set/v1"
+    )
+    assert grant_set_properties["assurance"]["enum"] == ["aal2", "aal3"]
+    assert grant_set_properties["directoryGrants"]["items"]["$ref"] == (
+        "#/$defs/DirectoryAdminGrant"
+    )
+    assert grant_set_properties["exactOrganizationMatchRequired"]["const"] is True
+    assert grant_set_properties["crossOrganizationFallbackAllowed"]["const"] is False
+    assert grant_set_properties["rawEmailsPresent"]["const"] is False
+    assert "expiresAt" in directory_grant_set["required"]
+    assert grant_set_properties["expiresAt"]["$ref"] == "#/$defs/IsoTimestamp"
+    assert not ({"organizationId", "projectId", "projectIds", "scopes", "roles"} & set(
+        grant_set_properties
+    ))
+
     capability_required = set(capabilities["required"])
     assert {
         "productionEnabled",
@@ -330,7 +547,10 @@ def validate_admin_contract() -> None:
     ):
         assert redaction[field]["const"] is False
 
-    example = json.loads(ADMIN_EXAMPLE.read_text(encoding="utf-8"))
+    dashboard_envelope = load_json(ADMIN_EXAMPLE)
+    require_valid(validator, dashboard_envelope, ADMIN_EXAMPLE.relative_to(ROOT))
+    assert dashboard_envelope["contract"] == "DashboardResponse"
+    example = dashboard_envelope["payload"]
     assert example["schema"] == "ores.shared-auth-admin-dashboard/v1"
     assert example["scope"]["exactMembershipRequired"] is True
     assert example["scope"]["crossOrganizationFallbackAllowed"] is False
@@ -354,11 +574,82 @@ def validate_admin_contract() -> None:
 
     example_names = {path.name for path in ADMIN_EXAMPLES.glob("*.json")}
     assert REVOCATION_EXAMPLE_NAMES <= example_names
-    examples = {name: json.loads((ADMIN_EXAMPLES / name).read_text(encoding="utf-8")) for name in EXAMPLE_DEFINITIONS}
+    examples = {
+        name: load_json(ADMIN_EXAMPLES / name)
+        for name in EXAMPLE_DEFINITIONS
+    }
+    examples["dashboard-response.json"] = example
     for name, definition in EXAMPLE_DEFINITIONS.items():
         validate_schema_value(examples[name], definitions[definition], schema)
         if definition in REVOCATION_CONTRACTS:
-            validate_schema_value({"contract": definition, "payload": examples[name]}, schema, schema)
+            require_valid(
+                validator,
+                {"contract": definition, "payload": examples[name]},
+                f"generated envelope for {name}",
+            )
+
+    canonical_documents: dict[str, tuple[pathlib.Path | str, dict[str, Any]]] = {
+        "DashboardResponse": (ADMIN_EXAMPLE.relative_to(ROOT), dashboard_envelope),
+    }
+    valid_paths = sorted(ADMIN_VALID_FIXTURES.glob("*.json"))
+    assert valid_paths, "admin positive fixture set is empty"
+    for path in valid_paths:
+        document = load_json(path)
+        require_valid(validator, document, path.relative_to(ROOT))
+        contract = document.get("contract")
+        require(isinstance(contract, str), f"positive fixture lacks contract: {path}")
+        require(
+            contract not in canonical_documents,
+            f"duplicate canonical positive fixture for {contract}: {path}",
+        )
+        canonical_documents[contract] = (path.relative_to(ROOT), document)
+
+    for name, definition in EXAMPLE_DEFINITIONS.items():
+        if definition not in REVOCATION_CONTRACTS or definition in canonical_documents:
+            continue
+        document = {"contract": definition, "payload": examples[name]}
+        canonical_documents[definition] = (f"generated envelope for {name}", document)
+
+    coverage = Counter(canonical_documents.keys())
+    assert coverage == Counter(ADMIN_CONTRACTS), (
+        f"positive fixtures must cover every discriminator exactly once: {coverage!r}"
+    )
+
+    legacy_validator = Draft202012Validator(
+        {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "contract": {"enum": list(ADMIN_CONTRACTS)},
+                "payload": {"type": "object"},
+            },
+            "required": ["contract", "payload"],
+        }
+    )
+    cross_shape_count = 0
+    for source_contract, (source_label, source) in canonical_documents.items():
+        for target_contract in ADMIN_CONTRACTS:
+            if target_contract == source_contract:
+                continue
+            candidate = {"contract": target_contract, "payload": source["payload"]}
+            assert legacy_validator.is_valid(candidate)
+            require(
+                not validator.is_valid(candidate),
+                f"{source_label} payload unexpectedly validates as {target_contract}",
+            )
+            cross_shape_count += 1
+    assert cross_shape_count == len(ADMIN_CONTRACTS) * (len(ADMIN_CONTRACTS) - 1)
+
+    invalid_paths = sorted(ADMIN_INVALID_FIXTURES.glob("*.json"))
+    assert invalid_paths, "admin negative fixture set is empty"
+    for path in invalid_paths:
+        document = load_json(path)
+        assert legacy_validator.is_valid(document), (
+            f"negative fixture does not exercise the former loose-payload gap: {path}"
+        )
+        require_invalid(validator, document, path.relative_to(ROOT))
+
     for name in REVOCATION_EXAMPLE_NAMES:
         source = (ADMIN_EXAMPLES / name).read_text(encoding="utf-8")
         assert EMAIL_VALUE.search(source) is None, f"raw email-like value in {name}"
@@ -486,6 +777,31 @@ def validate_admin_contract() -> None:
             if re.sub(r"[^a-z0-9]", "", field.lower()) not in normalized_source
         }
         assert not missing_fields, f"{language} revocation field drift: {sorted(missing_fields)}"
+        missing_directory_types = DIRECTORY_ADMIN_TYPES - {
+            name for name in DIRECTORY_ADMIN_TYPES if name in source
+        }
+        assert not missing_directory_types, (
+            f"{language} directory admin type drift: {sorted(missing_directory_types)}"
+        )
+        missing_directory_scopes = DIRECTORY_ADMIN_SCOPES - {
+            value for value in DIRECTORY_ADMIN_SCOPES if value in source
+        }
+        assert not missing_directory_scopes, (
+            f"{language} directory admin scope drift: {sorted(missing_directory_scopes)}"
+        )
+        missing_directory_roles = DIRECTORY_ADMIN_ROLES - {
+            value for value in DIRECTORY_ADMIN_ROLES if value in source
+        }
+        assert not missing_directory_roles, (
+            f"{language} directory admin role drift: {sorted(missing_directory_roles)}"
+        )
+        missing_directory_fields = {
+            field for field in DIRECTORY_ADMIN_FIELDS
+            if re.sub(r"[^a-z0-9]", "", field.lower()) not in normalized_source
+        }
+        assert not missing_directory_fields, (
+            f"{language} directory admin field drift: {sorted(missing_directory_fields)}"
+        )
 
 
 def main() -> int:

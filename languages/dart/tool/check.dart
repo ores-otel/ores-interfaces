@@ -35,4 +35,8 @@ void main() {
   if (RevocationScope.interactiveSessions.wireValue != 'interactive_sessions') {
     throw StateError('revocation scope drift');
   }
+  if (DirectoryAdminRole.directoryAdmin.wireValue != 'directory_admin' ||
+      DirectoryAdminScope.revocationsExecute.wireValue != 'directory.revocations.execute') {
+    throw StateError('directory admin contract drift');
+  }
 }

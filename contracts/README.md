@@ -11,6 +11,15 @@ Bindings must preserve:
 5. no token or secret values in errors, logs, or security events;
 6. inactive introspection responses by default when state is unknown.
 
+Shared Auth directory grants additionally require:
+
+1. the wrapped `DirectoryAdminGrantSet` discriminator and payload, never a loose object;
+2. exact audience introspection at AAL2 or AAL3 and a required token/session `expiresAt`;
+3. canonical UUIDs for grant, organization, and optional project identifiers;
+4. exact non-wildcard directory scopes and an explicit `directory_admin` role;
+5. no flat organization/project/scope claims outside `directoryGrants`;
+6. no raw email field or cross-organization fallback.
+
 Shared Auth global revocation additionally requires:
 
 1. immutable principal IDs; email is a transient operator search input and becomes a keyed

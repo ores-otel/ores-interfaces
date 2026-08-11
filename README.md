@@ -6,7 +6,8 @@ The repository is deliberately **contract-first**. `contracts/ores-platform/v1/s
 is the authority for portfolio-wide identity, request, error, capability, and security-event
 shapes. `contracts/shared-auth-admin/v1/schema.json` adds the read-only organization dashboard
 projection used by Shared Auth and the additive global session-revocation workflow described
-below. Product repositories may extend these types in their own namespaces, but must not
+below. It also defines the AAL2+ `DirectoryAdminGrantSet` consumed by the administrative web
+server. Product repositories may extend these types in their own namespaces, but must not
 weaken tenant, audience, assurance, retention, pagination, or redaction semantics.
 
 ## Layout
@@ -36,6 +37,13 @@ The dashboard contract is intentionally read-only and organization-scoped:
 - face/fingerprint/thumbprint language means local platform-authenticator user verification
   behind WebAuthn, not collection or retention of images or templates;
 - non-implemented capabilities must advertise `productionEnabled: false`.
+
+`DirectoryAdminGrantSet` is a discriminator-bound envelope payload returned only after active,
+exact-audience introspection at AAL2 or AAL3. Each nested `DirectoryAdminGrant` carries one
+canonical organization UUID, optional non-empty project UUIDs, exact non-wildcard scopes, and
+an explicit `directory_admin` role. The set carries the introspected token/session `expiresAt`;
+the UI must not outlive that bound. Organization/project authority never appears as a flat
+claim on the grant set, raw email is prohibited, and cross-organization fallback is false.
 
 ## Safe global session revocation
 
@@ -73,8 +81,8 @@ keys are write-only and only their keyed digests appear in responses and audit r
 ### Compatibility
 
 The dashboard query, response, user, session, role, organization, project, and capability
-definitions retain their v1 fields and semantics. Revocation adds new discriminator values and
-new `$defs` only. Consumers that do not implement mutation contracts can continue using the
+definitions retain their v1 fields and semantics. Directory grants and revocation add new
+discriminator values and new `$defs` only. Consumers that do not implement them can continue using the
 read projections; exhaustive discriminator consumers should negotiate or reject unknown
 contract names rather than silently interpreting them.
 

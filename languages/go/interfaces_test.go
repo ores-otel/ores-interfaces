@@ -14,3 +14,7 @@ func TestPartialRevocationIsTerminal(t *testing.T) {
     if !RevocationPartial.Terminal() || RevocationRunning.Terminal() { t.Fatal("revocation terminal-state drift") }
     if RevocationInteractiveSessions != "interactive_sessions" { t.Fatal("revocation scope drift") }
 }
+func TestDirectoryAdminGrantValuesAreExact(t *testing.T) {
+    if DirectoryAdmin != "directory_admin" { t.Fatal("directory admin role drift") }
+    if DirectoryRevocationsExecute != "directory.revocations.execute" { t.Fatal("directory admin scope drift") }
+}

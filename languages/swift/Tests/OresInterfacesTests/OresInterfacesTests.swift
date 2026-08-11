@@ -34,4 +34,12 @@ final class OresInterfacesTests: XCTestCase {
         XCTAssertTrue(RevocationJobState.partial.terminal)
         XCTAssertFalse(RevocationJobState.running.terminal)
     }
+
+    func testDirectoryAdminValuesAreExact() {
+        XCTAssertEqual(DirectoryAdminRole.directoryAdmin.rawValue, "directory_admin")
+        XCTAssertEqual(
+            DirectoryAdminScope.revocationsExecute.rawValue,
+            "directory.revocations.execute"
+        )
+    }
 }

@@ -5,6 +5,17 @@ class AuthMethod(StrEnum):
     JWT="jwt"; OIDC="oidc"; WEBAUTHN="webauthn"; TOTP="totp"; KERBEROS="kerberos"; SSH="ssh"; OPENPGP="openpgp"; PLATFORM_BIOMETRIC="platform_biometric"; RECOVERY="recovery"
 class AssuranceLevel(StrEnum):
     AAL0="aal0"; AAL1="aal1"; AAL2="aal2"; AAL3="aal3"
+class DirectoryAdminScope(StrEnum):
+    DASHBOARD_READ="directory.dashboard.read"
+    USERS_READ="directory.users.read"
+    SESSIONS_READ="directory.sessions.read"
+    ROLES_READ="directory.roles.read"
+    REVOCATIONS_READ="directory.revocations.read"
+    REVOCATIONS_EXECUTE="directory.revocations.execute"
+class DirectoryAdminRole(StrEnum):
+    DIRECTORY_ADMIN="directory_admin"
+    DIRECTORY_SECURITY_OPERATOR="directory_security_operator"
+    DIRECTORY_AUDITOR="directory_auditor"
 class PrincipalSearchState(StrEnum):
     NO_MATCH="no_match"; UNIQUE="unique"; AMBIGUOUS="ambiguous"
 class RevocationScope(StrEnum):
@@ -206,3 +217,29 @@ class GlobalRevocationOperation:
     targets: tuple[RevocationTargetResult, ...]
     audit: RevocationAuditCorrelation
     redaction: RevocationRedaction
+
+@dataclass(frozen=True, slots=True)
+class DirectoryAdminGrant:
+    grant_id: str
+    organization_id: str
+    project_ids: tuple[str, ...] | None
+    scopes: tuple[DirectoryAdminScope, ...]
+    roles: tuple[DirectoryAdminRole, ...]
+    granted_at: str
+    expires_at: str | None
+
+    def is_directory_admin(self) -> bool:
+        return DirectoryAdminRole.DIRECTORY_ADMIN in self.roles
+
+@dataclass(frozen=True, slots=True)
+class DirectoryAdminGrantSet:
+    schema: str
+    principal_id: str
+    audience: str
+    assurance: AssuranceLevel
+    directory_grants: tuple[DirectoryAdminGrant, ...]
+    evaluated_at: str
+    expires_at: str
+    exact_organization_match_required: bool
+    cross_organization_fallback_allowed: bool
+    raw_emails_present: bool

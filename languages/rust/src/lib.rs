@@ -7,6 +7,46 @@ pub enum AuthMethod { Jwt, Oidc, Webauthn, Totp, Kerberos, Ssh, OpenPgp, Platfor
 pub enum AssuranceLevel { Aal0, Aal1, Aal2, Aal3 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DirectoryAdminScope {
+    DashboardRead,
+    UsersRead,
+    SessionsRead,
+    RolesRead,
+    RevocationsRead,
+    RevocationsExecute,
+}
+
+impl DirectoryAdminScope {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::DashboardRead => "directory.dashboard.read",
+            Self::UsersRead => "directory.users.read",
+            Self::SessionsRead => "directory.sessions.read",
+            Self::RolesRead => "directory.roles.read",
+            Self::RevocationsRead => "directory.revocations.read",
+            Self::RevocationsExecute => "directory.revocations.execute",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DirectoryAdminRole {
+    DirectoryAdmin,
+    DirectorySecurityOperator,
+    DirectoryAuditor,
+}
+
+impl DirectoryAdminRole {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::DirectoryAdmin => "directory_admin",
+            Self::DirectorySecurityOperator => "directory_security_operator",
+            Self::DirectoryAuditor => "directory_auditor",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrincipalSearchState { NoMatch, Unique, Ambiguous }
 
 impl PrincipalSearchState {
@@ -336,6 +376,37 @@ pub struct GlobalRevocationOperation {
     pub redaction: RevocationRedaction,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DirectoryAdminGrant {
+    pub grant_id: String,
+    pub organization_id: String,
+    pub project_ids: Option<Vec<String>>,
+    pub scopes: Vec<DirectoryAdminScope>,
+    pub roles: Vec<DirectoryAdminRole>,
+    pub granted_at: String,
+    pub expires_at: Option<String>,
+}
+
+impl DirectoryAdminGrant {
+    pub fn is_directory_admin(&self) -> bool {
+        self.roles.contains(&DirectoryAdminRole::DirectoryAdmin)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DirectoryAdminGrantSet {
+    pub schema: String,
+    pub principal_id: String,
+    pub audience: String,
+    pub assurance: AssuranceLevel,
+    pub directory_grants: Vec<DirectoryAdminGrant>,
+    pub evaluated_at: String,
+    pub expires_at: String,
+    pub exact_organization_match_required: bool,
+    pub cross_organization_fallback_allowed: bool,
+    pub raw_emails_present: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -378,5 +449,14 @@ mod tests {
         assert!(RevocationJobState::Partial.is_terminal());
         assert!(!RevocationJobState::Running.is_terminal());
         assert_eq!(RevocationScope::InteractiveSessions.as_str(), "interactive_sessions");
+    }
+
+    #[test]
+    fn directory_admin_values_are_exact() {
+        assert_eq!(DirectoryAdminRole::DirectoryAdmin.as_str(), "directory_admin");
+        assert_eq!(
+            DirectoryAdminScope::RevocationsExecute.as_str(),
+            "directory.revocations.execute"
+        );
     }
 }

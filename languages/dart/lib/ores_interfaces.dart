@@ -1,5 +1,22 @@
 enum AuthMethod { jwt, oidc, webauthn, totp, kerberos, ssh, openpgp, platformBiometric, recovery }
 enum AssuranceLevel { aal0, aal1, aal2, aal3 }
+enum DirectoryAdminScope {
+  dashboardRead('directory.dashboard.read'),
+  usersRead('directory.users.read'),
+  sessionsRead('directory.sessions.read'),
+  rolesRead('directory.roles.read'),
+  revocationsRead('directory.revocations.read'),
+  revocationsExecute('directory.revocations.execute');
+  const DirectoryAdminScope(this.wireValue);
+  final String wireValue;
+}
+enum DirectoryAdminRole {
+  directoryAdmin('directory_admin'),
+  directorySecurityOperator('directory_security_operator'),
+  directoryAuditor('directory_auditor');
+  const DirectoryAdminRole(this.wireValue);
+  final String wireValue;
+}
 enum PrincipalSearchState {
   noMatch('no_match'), unique('unique'), ambiguous('ambiguous');
   const PrincipalSearchState(this.wireValue);
@@ -98,4 +115,13 @@ final class RevocationAuditCorrelation {
 final class GlobalRevocationOperation {
   const GlobalRevocationOperation({required this.schema, required this.operationId, required this.principalId, required this.previewId, required this.state, required this.selectedScopes, required this.createdAt, required this.updatedAt, this.completedAt, required this.fence, required this.targets, required this.audit, required this.redaction});
   final String schema; final String operationId; final String principalId; final String previewId; final RevocationJobState state; final List<RevocationScope> selectedScopes; final String createdAt; final String updatedAt; final String? completedAt; final RevocationFence fence; final List<RevocationTargetResult> targets; final RevocationAuditCorrelation audit; final RevocationRedaction redaction;
+}
+final class DirectoryAdminGrant {
+  const DirectoryAdminGrant({required this.grantId, required this.organizationId, this.projectIds, required this.scopes, required this.roles, required this.grantedAt, this.expiresAt});
+  final String grantId; final String organizationId; final List<String>? projectIds; final List<DirectoryAdminScope> scopes; final List<DirectoryAdminRole> roles; final String grantedAt; final String? expiresAt;
+  bool get isDirectoryAdmin => roles.contains(DirectoryAdminRole.directoryAdmin);
+}
+final class DirectoryAdminGrantSet {
+  const DirectoryAdminGrantSet({required this.schema, required this.principalId, required this.audience, required this.assurance, required this.directoryGrants, required this.evaluatedAt, required this.expiresAt, required this.exactOrganizationMatchRequired, required this.crossOrganizationFallbackAllowed, required this.rawEmailsPresent});
+  final String schema; final String principalId; final String audience; final AssuranceLevel assurance; final List<DirectoryAdminGrant> directoryGrants; final String evaluatedAt; final String expiresAt; final bool exactOrganizationMatchRequired; final bool crossOrganizationFallbackAllowed; final bool rawEmailsPresent;
 }

@@ -1,6 +1,19 @@
 import Foundation
 public enum AuthMethod: String, Codable, Sendable { case jwt, oidc, webauthn, totp, kerberos, ssh, openpgp, platformBiometric = "platform_biometric", recovery }
 public enum AssuranceLevel: String, Codable, Sendable { case aal0, aal1, aal2, aal3 }
+public enum DirectoryAdminScope: String, Codable, Sendable {
+  case dashboardRead = "directory.dashboard.read"
+  case usersRead = "directory.users.read"
+  case sessionsRead = "directory.sessions.read"
+  case rolesRead = "directory.roles.read"
+  case revocationsRead = "directory.revocations.read"
+  case revocationsExecute = "directory.revocations.execute"
+}
+public enum DirectoryAdminRole: String, Codable, Sendable {
+  case directoryAdmin = "directory_admin"
+  case directorySecurityOperator = "directory_security_operator"
+  case directoryAuditor = "directory_auditor"
+}
 public enum PrincipalSearchState: String, Codable, Sendable { case noMatch = "no_match", unique, ambiguous }
 public enum RevocationScope: String, Codable, Sendable {
   case interactiveSessions = "interactive_sessions"
@@ -66,4 +79,11 @@ public struct RevocationAuditCorrelation: Codable, Sendable {
 }
 public struct GlobalRevocationOperation: Codable, Sendable {
   public let schema: String; public let operationId: String; public let principalId: String; public let previewId: String; public let state: RevocationJobState; public let selectedScopes: [RevocationScope]; public let createdAt: String; public let updatedAt: String; public let completedAt: String?; public let fence: RevocationFence; public let targets: [RevocationTargetResult]; public let audit: RevocationAuditCorrelation; public let redaction: RevocationRedaction
+}
+public struct DirectoryAdminGrant: Codable, Sendable {
+  public let grantId: String; public let organizationId: String; public let projectIds: [String]?; public let scopes: [DirectoryAdminScope]; public let roles: [DirectoryAdminRole]; public let grantedAt: String; public let expiresAt: String?
+  public var isDirectoryAdmin: Bool { roles.contains(.directoryAdmin) }
+}
+public struct DirectoryAdminGrantSet: Codable, Sendable {
+  public let schema: String; public let principalId: String; public let audience: String; public let assurance: AssuranceLevel; public let directoryGrants: [DirectoryAdminGrant]; public let evaluatedAt: String; public let expiresAt: String; public let exactOrganizationMatchRequired: Bool; public let crossOrganizationFallbackAllowed: Bool; public let rawEmailsPresent: Bool
 }

@@ -6,6 +6,23 @@ public final class AuthContracts {
   private AuthContracts() {}
   public enum AuthMethod { JWT, OIDC, WEBAUTHN, TOTP, KERBEROS, SSH, OPENPGP, PLATFORM_BIOMETRIC, RECOVERY }
   public enum AssuranceLevel { AAL0, AAL1, AAL2, AAL3 }
+  public enum DirectoryAdminScope {
+    DASHBOARD_READ("directory.dashboard.read"), USERS_READ("directory.users.read"),
+    SESSIONS_READ("directory.sessions.read"), ROLES_READ("directory.roles.read"),
+    REVOCATIONS_READ("directory.revocations.read"),
+    REVOCATIONS_EXECUTE("directory.revocations.execute");
+    private final String wireValue;
+    DirectoryAdminScope(String wireValue) { this.wireValue = wireValue; }
+    public String wireValue() { return wireValue; }
+  }
+  public enum DirectoryAdminRole {
+    DIRECTORY_ADMIN("directory_admin"),
+    DIRECTORY_SECURITY_OPERATOR("directory_security_operator"),
+    DIRECTORY_AUDITOR("directory_auditor");
+    private final String wireValue;
+    DirectoryAdminRole(String wireValue) { this.wireValue = wireValue; }
+    public String wireValue() { return wireValue; }
+  }
   public enum PrincipalSearchState {
     NO_MATCH("no_match"), UNIQUE("unique"), AMBIGUOUS("ambiguous");
     private final String wireValue;
@@ -63,4 +80,8 @@ public final class AuthContracts {
   public record RevocationFence(String appliedAt, String notBefore, long previousAuthEpoch, long authEpoch, boolean effective) {}
   public record RevocationAuditCorrelation(String auditEventId, String correlationId, String requestId, String traceId, String actorPrincipalId, String actorSessionIdHash, String idempotencyKeyHash, String reasonCode, boolean rawEmailsPresent, boolean rawTokensPresent, boolean rawBiometricMaterialPresent) {}
   public record GlobalRevocationOperation(String schema, String operationId, String principalId, String previewId, RevocationJobState state, List<RevocationScope> selectedScopes, String createdAt, String updatedAt, String completedAt, RevocationFence fence, List<RevocationTargetResult> targets, RevocationAuditCorrelation audit, RevocationRedaction redaction) {}
+  public record DirectoryAdminGrant(String grantId, String organizationId, List<String> projectIds, List<DirectoryAdminScope> scopes, List<DirectoryAdminRole> roles, String grantedAt, String expiresAt) {
+    public boolean isDirectoryAdmin() { return roles.contains(DirectoryAdminRole.DIRECTORY_ADMIN); }
+  }
+  public record DirectoryAdminGrantSet(String schema, String principalId, String audience, AssuranceLevel assurance, List<DirectoryAdminGrant> directoryGrants, String evaluatedAt, String expiresAt, boolean exactOrganizationMatchRequired, boolean crossOrganizationFallbackAllowed, boolean rawEmailsPresent) {}
 }

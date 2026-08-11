@@ -2,6 +2,9 @@ import unittest
 from ores_interfaces import (
     AssuranceLevel,
     AuthMethod,
+    DirectoryAdminGrant,
+    DirectoryAdminRole,
+    DirectoryAdminScope,
     PlatformBiometricProof,
     RevocationJobState,
     RevocationScope,
@@ -37,4 +40,16 @@ class ContractTests(unittest.TestCase):
     def test_partial_revocation_is_terminal(self):
         self.assertTrue(RevocationJobState.PARTIAL.terminal())
         self.assertFalse(RevocationJobState.RUNNING.terminal())
+    def test_directory_admin_grant_is_explicit(self):
+        grant = DirectoryAdminGrant(
+            "20000000-0000-4000-8000-000000000001",
+            "10000000-0000-4000-8000-000000000001",
+            None,
+            (DirectoryAdminScope.DASHBOARD_READ,),
+            (DirectoryAdminRole.DIRECTORY_ADMIN,),
+            "2026-08-11T21:00:00Z",
+            None,
+        )
+        self.assertTrue(grant.is_directory_admin())
+        self.assertNotIn("*", grant.scopes[0])
 if __name__ == "__main__": unittest.main()

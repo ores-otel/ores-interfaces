@@ -4,6 +4,19 @@ export const AuthMethod = Object.freeze({
   PLATFORM_BIOMETRIC: "platform_biometric", RECOVERY: "recovery"
 });
 export const AssuranceLevel = Object.freeze({AAL0: "aal0", AAL1: "aal1", AAL2: "aal2", AAL3: "aal3"});
+export const DirectoryAdminScope = Object.freeze({
+  DASHBOARD_READ: "directory.dashboard.read",
+  USERS_READ: "directory.users.read",
+  SESSIONS_READ: "directory.sessions.read",
+  ROLES_READ: "directory.roles.read",
+  REVOCATIONS_READ: "directory.revocations.read",
+  REVOCATIONS_EXECUTE: "directory.revocations.execute"
+});
+export const DirectoryAdminRole = Object.freeze({
+  DIRECTORY_ADMIN: "directory_admin",
+  DIRECTORY_SECURITY_OPERATOR: "directory_security_operator",
+  DIRECTORY_AUDITOR: "directory_auditor"
+});
 export const PrincipalSearchState = Object.freeze({NO_MATCH: "no_match", UNIQUE: "unique", AMBIGUOUS: "ambiguous"});
 export const RevocationScope = Object.freeze({
   INTERACTIVE_SESSIONS: "interactive_sessions",

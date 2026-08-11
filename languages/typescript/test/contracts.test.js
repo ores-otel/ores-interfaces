@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   AuthMethod,
+  DirectoryAdminRole,
+  DirectoryAdminScope,
   RevocationJobState,
   RevocationScope,
   isSafePlatformBiometricProof,
@@ -22,4 +24,9 @@ test("global revocation requires phishing-resistant AAL2 WebAuthn", () => {
 test("partial is an honest terminal job state", () => {
   assert.equal(isTerminalRevocationJobState(RevocationJobState.PARTIAL), true);
   assert.equal(isTerminalRevocationJobState(RevocationJobState.RUNNING), false);
+});
+test("directory admin grants use exact non-wildcard values", () => {
+  assert.equal(DirectoryAdminRole.DIRECTORY_ADMIN, "directory_admin");
+  assert.equal(DirectoryAdminScope.REVOCATIONS_EXECUTE, "directory.revocations.execute");
+  assert.equal(Object.values(DirectoryAdminScope).some((value) => value.includes("*")), false);
 });

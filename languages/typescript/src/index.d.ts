@@ -1,5 +1,7 @@
 export type AuthMethod = "jwt" | "oidc" | "webauthn" | "totp" | "kerberos" | "ssh" | "openpgp" | "platform_biometric" | "recovery";
 export type AssuranceLevel = "aal0" | "aal1" | "aal2" | "aal3";
+export type DirectoryAdminScope = "directory.dashboard.read" | "directory.users.read" | "directory.sessions.read" | "directory.roles.read" | "directory.revocations.read" | "directory.revocations.execute";
+export type DirectoryAdminRole = "directory_admin" | "directory_security_operator" | "directory_auditor";
 export type PrincipalSearchState = "no_match" | "unique" | "ambiguous";
 export type RevocationScope = "interactive_sessions" | "refresh_token_families" | "offline_grants" | "downstream_sessions" | "impersonation_sessions" | "user_api_credentials" | "registered_device_sessions";
 export type RevocationJobState = "queued" | "running" | "partial" | "succeeded" | "failed" | "cancelled";
@@ -25,8 +27,12 @@ export interface RevocationTargetResult { targetIdHash: string; identity: Provid
 export interface RevocationFence { appliedAt: string; notBefore: string; previousAuthEpoch: number; authEpoch: number; effective: true; }
 export interface RevocationAuditCorrelation { auditEventId: string; correlationId: string; requestId: string; traceId: string; actorPrincipalId: string; actorSessionIdHash: string; idempotencyKeyHash: string; reasonCode: string; rawEmailsPresent: false; rawTokensPresent: false; rawBiometricMaterialPresent: false; }
 export interface GlobalRevocationOperation { schema: "ores.shared-auth-admin-global-revocation-operation/v1"; operationId: string; principalId: string; previewId: string; state: RevocationJobState; selectedScopes: RevocationScope[]; createdAt: string; updatedAt: string; completedAt?: string; fence: RevocationFence; targets: RevocationTargetResult[]; audit: RevocationAuditCorrelation; redaction: RevocationRedaction; }
+export interface DirectoryAdminGrant { grantId: string; organizationId: string; projectIds?: string[]; scopes: DirectoryAdminScope[]; roles: DirectoryAdminRole[]; grantedAt: string; expiresAt?: string; }
+export interface DirectoryAdminGrantSet { schema: "ores.shared-auth-admin-directory-grant-set/v1"; principalId: string; audience: string; assurance: "aal2" | "aal3"; directoryGrants: DirectoryAdminGrant[]; evaluatedAt: string; expiresAt: string; exactOrganizationMatchRequired: true; crossOrganizationFallbackAllowed: false; rawEmailsPresent: false; }
 export declare const AuthMethod: Readonly<Record<string, AuthMethod>>;
 export declare const AssuranceLevel: Readonly<Record<string, AssuranceLevel>>;
+export declare const DirectoryAdminScope: Readonly<Record<string, DirectoryAdminScope>>;
+export declare const DirectoryAdminRole: Readonly<Record<string, DirectoryAdminRole>>;
 export declare const PrincipalSearchState: Readonly<Record<string, PrincipalSearchState>>;
 export declare const RevocationScope: Readonly<Record<string, RevocationScope>>;
 export declare const RevocationJobState: Readonly<Record<string, RevocationJobState>>;

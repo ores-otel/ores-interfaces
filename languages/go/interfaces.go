@@ -16,6 +16,23 @@ const (
 type AssuranceLevel string
 const ( Aal0 AssuranceLevel = "aal0"; Aal1 AssuranceLevel = "aal1"; Aal2 AssuranceLevel = "aal2"; Aal3 AssuranceLevel = "aal3" )
 
+type DirectoryAdminScope string
+const (
+    DirectoryDashboardRead DirectoryAdminScope = "directory.dashboard.read"
+    DirectoryUsersRead DirectoryAdminScope = "directory.users.read"
+    DirectorySessionsRead DirectoryAdminScope = "directory.sessions.read"
+    DirectoryRolesRead DirectoryAdminScope = "directory.roles.read"
+    DirectoryRevocationsRead DirectoryAdminScope = "directory.revocations.read"
+    DirectoryRevocationsExecute DirectoryAdminScope = "directory.revocations.execute"
+)
+
+type DirectoryAdminRole string
+const (
+    DirectoryAdmin DirectoryAdminRole = "directory_admin"
+    DirectorySecurityOperator DirectoryAdminRole = "directory_security_operator"
+    DirectoryAuditor DirectoryAdminRole = "directory_auditor"
+)
+
 type PrincipalSearchState string
 const ( PrincipalSearchNoMatch PrincipalSearchState = "no_match"; PrincipalSearchUnique PrincipalSearchState = "unique"; PrincipalSearchAmbiguous PrincipalSearchState = "ambiguous" )
 
@@ -217,4 +234,27 @@ type GlobalRevocationOperation struct {
     Targets []RevocationTargetResult `json:"targets"`
     Audit RevocationAuditCorrelation `json:"audit"`
     Redaction RevocationRedaction `json:"redaction"`
+}
+
+type DirectoryAdminGrant struct {
+    GrantID string `json:"grantId"`
+    OrganizationID string `json:"organizationId"`
+    ProjectIDs []string `json:"projectIds,omitempty"`
+    Scopes []DirectoryAdminScope `json:"scopes"`
+    Roles []DirectoryAdminRole `json:"roles"`
+    GrantedAt string `json:"grantedAt"`
+    ExpiresAt string `json:"expiresAt,omitempty"`
+}
+
+type DirectoryAdminGrantSet struct {
+    Schema string `json:"schema"`
+    PrincipalID string `json:"principalId"`
+    Audience string `json:"audience"`
+    Assurance AssuranceLevel `json:"assurance"`
+    DirectoryGrants []DirectoryAdminGrant `json:"directoryGrants"`
+    EvaluatedAt string `json:"evaluatedAt"`
+    ExpiresAt string `json:"expiresAt"`
+    ExactOrganizationMatchRequired bool `json:"exactOrganizationMatchRequired"`
+    CrossOrganizationFallbackAllowed bool `json:"crossOrganizationFallbackAllowed"`
+    RawEmailsPresent bool `json:"rawEmailsPresent"`
 }

@@ -27,5 +27,10 @@ public final class AuthContractsTest {
     if (!"interactive_sessions".equals(AuthContracts.RevocationScope.INTERACTIVE_SESSIONS.wireValue())) {
       throw new AssertionError("revocation scope drift");
     }
+    if (!"directory_admin".equals(AuthContracts.DirectoryAdminRole.DIRECTORY_ADMIN.wireValue())
+        || !"directory.revocations.execute".equals(
+            AuthContracts.DirectoryAdminScope.REVOCATIONS_EXECUTE.wireValue())) {
+      throw new AssertionError("directory admin contract drift");
+    }
   }
 }
