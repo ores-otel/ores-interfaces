@@ -43,6 +43,10 @@ AUTH_METHODS = {
 REVOCATION_CONTRACTS = {
     "PrincipalSearchRequest",
     "PrincipalSearchResult",
+    "PrincipalSelectionRequest",
+    "PrincipalSelectionResult",
+    "GlobalRevocationPreviewRequest",
+    "GlobalRevocationCommitAuthorization",
     "GlobalRevocationPreview",
     "GlobalRevocationRequest",
     "GlobalRevocationOperation",
@@ -58,6 +62,10 @@ ADMIN_CONTRACTS = (
     "CredentialCapabilityProjection",
     "PrincipalSearchRequest",
     "PrincipalSearchResult",
+    "PrincipalSelectionRequest",
+    "PrincipalSelectionResult",
+    "GlobalRevocationPreviewRequest",
+    "GlobalRevocationCommitAuthorization",
     "GlobalRevocationPreview",
     "GlobalRevocationRequest",
     "GlobalRevocationOperation",
@@ -133,6 +141,11 @@ REVOCATION_TYPES = {
     "PrincipalSearchRequest",
     "PrincipalSearchCandidate",
     "PrincipalSearchResult",
+    "PrincipalSelectionRequest",
+    "PrincipalSelectionResult",
+    "GlobalRevocationPreviewRequest",
+    "GlobalRevocationCommitAuthorization",
+    "InventoryStatus",
     "RevocationBlastRadius",
     "RevocationPreviewTarget",
     "GlobalRevocationPreview",
@@ -149,9 +162,21 @@ REVOCATION_FIELDS = {
     "opaqueIdentityHandle",
     "principalId",
     "emailSearchKeyHash",
+    "lookupId",
+    "selectionId",
+    "selectionConfirmed",
+    "commitAuthorizationId",
+    "verifiedStepUp",
+    "dualControlRequired",
+    "dualControlSatisfied",
+    "previewCreatedByPrincipalIdHash",
+    "commitAuthorizedByPrincipalIdHash",
+    "commitAuthorizedBySessionIdHash",
     "requiresExplicitPrincipalSelection",
     "selectedScopes",
     "blastRadius",
+    "inventoryStatus",
+    "unknownFields",
     "idempotencyKey",
     "phishingResistant",
     "freshUntil",
@@ -169,6 +194,19 @@ REVOCATION_FIELDS = {
     "rawEmailsPresent",
     "rawTokensPresent",
     "rawBiometricMaterialPresent",
+}
+INVENTORY_COUNT_FIELDS = {
+    "providerTenantCount",
+    "identityCount",
+    "organizationCount",
+    "projectCount",
+    "interactiveSessionCount",
+    "refreshTokenFamilyCount",
+    "offlineGrantCount",
+    "downstreamSessionCount",
+    "impersonationSessionCount",
+    "userApiCredentialCount",
+    "registeredDeviceSessionCount",
 }
 LANGUAGE_BINDINGS = {
     "rust": ROOT / "languages/rust/src/lib.rs",
@@ -458,6 +496,27 @@ def validate_admin_contract() -> None:
     assert "principalId" in search_candidate["required"]
     assert "principalId" in search_candidate["properties"]
 
+    selection_request = definitions["PrincipalSelectionRequest"]
+    assert selection_request["properties"]["selectionConfirmed"]["const"] is True
+    assert {"lookupId", "principalId"} <= set(selection_request["required"])
+    assert not ({"email", "emailSearchKeyHash"} & set(selection_request["properties"]))
+
+    selection_result = definitions["PrincipalSelectionResult"]
+    assert selection_result["properties"]["selectionId"]["$ref"] == (
+        "#/$defs/OpaqueSelectionId"
+    )
+    assert {"selectionId", "lookupId", "principalId", "selectedAt", "expiresAt"} <= set(
+        selection_result["required"]
+    )
+
+    preview_request = definitions["GlobalRevocationPreviewRequest"]
+    assert preview_request["properties"]["selectionId"]["$ref"] == (
+        "#/$defs/OpaqueSelectionId"
+    )
+    assert not ({"principalId", "email", "emailSearchKeyHash"} & set(
+        preview_request["properties"]
+    ))
+
     scopes = definitions["RevocationScopeSet"]
     mandatory_scopes = {item["contains"]["const"] for item in scopes["allOf"]}
     assert mandatory_scopes == {"interactive_sessions", "refresh_token_families"}
@@ -467,6 +526,19 @@ def validate_admin_contract() -> None:
     assert preview["properties"]["requiresStepUp"]["const"] is True
     assert preview["properties"]["minimumAssurance"]["const"] == "aal2"
     assert preview["properties"]["phishingResistantStepUpRequired"]["const"] is True
+    blast_radius = definitions["RevocationBlastRadius"]
+    assert set(blast_radius["properties"]) == INVENTORY_COUNT_FIELDS | {
+        "inventoryStatus",
+        "unknownFields",
+    }
+    assert set(blast_radius["properties"]["unknownFields"]["items"]["enum"]) == (
+        INVENTORY_COUNT_FIELDS
+    )
+    assert set(definitions["InventoryStatus"]["enum"]) == {
+        "complete",
+        "partial",
+        "unavailable",
+    }
 
     step_up = definitions["RevocationStepUp"]
     assert set(step_up["properties"]["assurance"]["enum"]) == {"aal2", "aal3"}
@@ -476,14 +548,23 @@ def validate_admin_contract() -> None:
 
     request = definitions["GlobalRevocationRequest"]
     assert {
-        "principalId",
         "previewId",
+        "commitAuthorizationId",
         "idempotencyKey",
         "selectedScopes",
-        "principalSelectionConfirmed",
-        "stepUp",
     } <= set(request["required"])
-    assert request["properties"]["principalSelectionConfirmed"]["const"] is True
+    assert not ({"principalId", "principalSelectionConfirmed", "stepUp"} & set(
+        request["properties"]
+    ))
+
+    commit_authorization = definitions["GlobalRevocationCommitAuthorization"]
+    assert commit_authorization["properties"]["commitAuthorizationId"]["$ref"] == (
+        "#/$defs/OpaqueCommitAuthorizationId"
+    )
+    assert commit_authorization["properties"]["dualControlSatisfied"]["const"] is True
+    assert commit_authorization["properties"]["verifiedStepUp"]["$ref"] == (
+        "#/$defs/RevocationStepUp"
+    )
 
     operation = definitions["GlobalRevocationOperation"]
     assert {"principalId", "state", "fence", "targets", "audit"} <= set(operation["required"])
@@ -673,24 +754,100 @@ def validate_admin_contract() -> None:
     unresolved_ambiguity["candidates"] = unresolved_ambiguity["candidates"][:1]
     assert not schema_matches(unresolved_ambiguity, definitions["PrincipalSearchResult"], schema)
 
+    selection_request_example = canonical_documents["PrincipalSelectionRequest"][1]["payload"]
+    selection_result_example = canonical_documents["PrincipalSelectionResult"][1]["payload"]
+    preview_request_example = canonical_documents["GlobalRevocationPreviewRequest"][1]["payload"]
+    assert selection_request_example["lookupId"] == selection_result_example["lookupId"]
+    assert selection_request_example["principalId"] == selection_result_example["principalId"]
+    assert selection_request_example["selectionConfirmed"] is True
+    assert timestamp(selection_result_example["selectedAt"]) < timestamp(
+        selection_result_example["expiresAt"]
+    )
+    assert preview_request_example["selectionId"] == selection_result_example["selectionId"]
+    assert not ({"principalId", "email", "emailSearchKeyHash"} & set(preview_request_example))
+    assert {"interactive_sessions", "refresh_token_families"} <= set(
+        preview_request_example["selectedScopes"]
+    )
+
     preview_example = examples["global-revocation-preview.json"]
     request_example = examples["global-revocation-request.json"]
     operation_example = examples["global-revocation-operation.json"]
     running_operation_example = examples["global-revocation-operation-running.json"]
-    assert preview_example["principalId"] == request_example["principalId"] == operation_example["principalId"]
+    assert preview_example["principalId"] == operation_example["principalId"]
     assert preview_example["previewId"] == request_example["previewId"] == operation_example["previewId"]
     assert preview_example["selectedScopes"] == request_example["selectedScopes"] == operation_example["selectedScopes"]
     assert {"interactive_sessions", "refresh_token_families"} <= set(request_example["selectedScopes"])
     assert timestamp(preview_example["generatedAt"]) < timestamp(preview_example["expiresAt"])
-    assert timestamp(request_example["stepUp"]["verifiedAt"]) <= timestamp(request_example["requestedAt"])
-    assert timestamp(request_example["requestedAt"]) <= timestamp(request_example["stepUp"]["freshUntil"])
-    assert request_example["stepUp"]["assurance"] in {"aal2", "aal3"}
-    assert request_example["stepUp"]["phishingResistant"] is True
-    assert "webauthn" in request_example["stepUp"]["authMethods"]
-    assert request_example["principalSelectionConfirmed"] is True
-    weak_step_up = deepcopy(request_example)
-    weak_step_up["stepUp"]["assurance"] = "aal1"
-    assert not schema_matches(weak_step_up, definitions["GlobalRevocationRequest"], schema)
+    assert preview_example["blastRadius"]["inventoryStatus"] == "complete"
+    assert preview_example["blastRadius"]["unknownFields"] == []
+
+    unavailable_preview = deepcopy(preview_example)
+    unavailable_preview["blastRadius"]["inventoryStatus"] = "unavailable"
+    unavailable_preview["blastRadius"]["unknownFields"] = sorted(INVENTORY_COUNT_FIELDS)
+    for field in INVENTORY_COUNT_FIELDS:
+        unavailable_preview["blastRadius"][field] = None
+    assert validator.is_valid(
+        {"contract": "GlobalRevocationPreview", "payload": unavailable_preview}
+    )
+
+    fabricated_zero = deepcopy(unavailable_preview)
+    fabricated_zero["blastRadius"]["organizationCount"] = 0
+    assert not validator.is_valid(
+        {"contract": "GlobalRevocationPreview", "payload": fabricated_zero}
+    )
+    unreported_unknown = deepcopy(unavailable_preview)
+    unreported_unknown["blastRadius"]["unknownFields"].remove("organizationCount")
+    assert not validator.is_valid(
+        {"contract": "GlobalRevocationPreview", "payload": unreported_unknown}
+    )
+
+    partial_preview = deepcopy(preview_example)
+    partial_preview["blastRadius"]["inventoryStatus"] = "partial"
+    partial_preview["blastRadius"]["organizationCount"] = None
+    partial_preview["blastRadius"]["projectCount"] = None
+    partial_preview["blastRadius"]["unknownFields"] = [
+        "organizationCount",
+        "projectCount",
+    ]
+    assert validator.is_valid(
+        {"contract": "GlobalRevocationPreview", "payload": partial_preview}
+    )
+    commit_authorization_example = canonical_documents[
+        "GlobalRevocationCommitAuthorization"
+    ][1]["payload"]
+    assert request_example["commitAuthorizationId"] == (
+        commit_authorization_example["commitAuthorizationId"]
+    )
+    assert request_example["previewId"] == commit_authorization_example["previewId"]
+    assert preview_example["principalId"] == commit_authorization_example["principalId"]
+    assert request_example["selectedScopes"] == commit_authorization_example["selectedScopes"]
+    assert not ({"principalId", "principalSelectionConfirmed", "stepUp"} & set(request_example))
+    verified_step_up = commit_authorization_example["verifiedStepUp"]
+    assert timestamp(verified_step_up["verifiedAt"]) <= timestamp(
+        commit_authorization_example["issuedAt"]
+    )
+    assert timestamp(commit_authorization_example["issuedAt"]) <= timestamp(
+        commit_authorization_example["expiresAt"]
+    )
+    assert timestamp(commit_authorization_example["expiresAt"]) <= timestamp(
+        verified_step_up["freshUntil"]
+    )
+    assert timestamp(commit_authorization_example["expiresAt"]) <= timestamp(
+        preview_example["expiresAt"]
+    )
+    assert verified_step_up["assurance"] in {"aal2", "aal3"}
+    assert verified_step_up["phishingResistant"] is True
+    assert "webauthn" in verified_step_up["authMethods"]
+    assert commit_authorization_example["dualControlSatisfied"] is True
+    if commit_authorization_example["dualControlRequired"]:
+        assert commit_authorization_example["previewCreatedByPrincipalIdHash"] != (
+            commit_authorization_example["commitAuthorizedByPrincipalIdHash"]
+        )
+    client_asserted_step_up = deepcopy(request_example)
+    client_asserted_step_up["stepUp"] = verified_step_up
+    assert not schema_matches(
+        client_asserted_step_up, definitions["GlobalRevocationRequest"], schema
+    )
 
     assert operation_example["state"] == "partial"
     assert operation_example["fence"]["effective"] is True

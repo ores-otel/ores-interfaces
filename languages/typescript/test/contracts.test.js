@@ -4,6 +4,7 @@ import {
   AuthMethod,
   DirectoryAdminRole,
   DirectoryAdminScope,
+  InventoryStatus,
   RevocationJobState,
   RevocationScope,
   isSafePlatformBiometricProof,
@@ -24,6 +25,7 @@ test("global revocation requires phishing-resistant AAL2 WebAuthn", () => {
 test("partial is an honest terminal job state", () => {
   assert.equal(isTerminalRevocationJobState(RevocationJobState.PARTIAL), true);
   assert.equal(isTerminalRevocationJobState(RevocationJobState.RUNNING), false);
+  assert.equal(InventoryStatus.UNAVAILABLE, "unavailable");
 });
 test("directory admin grants use exact non-wildcard values", () => {
   assert.equal(DirectoryAdminRole.DIRECTORY_ADMIN, "directory_admin");

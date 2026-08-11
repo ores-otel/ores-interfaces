@@ -22,6 +22,11 @@ enum PrincipalSearchState {
   const PrincipalSearchState(this.wireValue);
   final String wireValue;
 }
+enum InventoryStatus {
+  complete('complete'), partial('partial'), unavailable('unavailable');
+  const InventoryStatus(this.wireValue);
+  final String wireValue;
+}
 enum RevocationScope {
   interactiveSessions('interactive_sessions'),
   refreshTokenFamilies('refresh_token_families'),
@@ -75,9 +80,21 @@ final class PrincipalSearchResult {
   const PrincipalSearchResult({required this.schema, required this.lookupId, required this.emailSearchKeyHash, required this.state, required this.candidates, required this.requiresExplicitPrincipalSelection, required this.generatedAt, required this.redaction});
   final String schema; final String lookupId; final String emailSearchKeyHash; final PrincipalSearchState state; final List<PrincipalSearchCandidate> candidates; final bool requiresExplicitPrincipalSelection; final String generatedAt; final RevocationRedaction redaction;
 }
+final class PrincipalSelectionRequest {
+  const PrincipalSelectionRequest({required this.schema, required this.requestId, required this.lookupId, required this.principalId, required this.selectionConfirmed, required this.requestedAt, required this.redaction});
+  final String schema; final String requestId; final String lookupId; final String principalId; final bool selectionConfirmed; final String requestedAt; final RevocationRedaction redaction;
+}
+final class PrincipalSelectionResult {
+  const PrincipalSelectionResult({required this.schema, required this.selectionId, required this.lookupId, required this.principalId, required this.selectedAt, required this.expiresAt, required this.redaction});
+  final String schema; final String selectionId; final String lookupId; final String principalId; final String selectedAt; final String expiresAt; final RevocationRedaction redaction;
+}
+final class GlobalRevocationPreviewRequest {
+  const GlobalRevocationPreviewRequest({required this.schema, required this.requestId, required this.selectionId, required this.selectedScopes, required this.requestedAt, required this.redaction});
+  final String schema; final String requestId; final String selectionId; final List<RevocationScope> selectedScopes; final String requestedAt; final RevocationRedaction redaction;
+}
 final class RevocationBlastRadius {
-  const RevocationBlastRadius({required this.providerTenantCount, required this.identityCount, required this.organizationCount, required this.projectCount, required this.interactiveSessionCount, required this.refreshTokenFamilyCount, required this.offlineGrantCount, required this.downstreamSessionCount, required this.impersonationSessionCount, required this.userApiCredentialCount, required this.registeredDeviceSessionCount});
-  final int providerTenantCount; final int identityCount; final int organizationCount; final int projectCount; final int interactiveSessionCount; final int refreshTokenFamilyCount; final int offlineGrantCount; final int downstreamSessionCount; final int impersonationSessionCount; final int userApiCredentialCount; final int registeredDeviceSessionCount;
+  const RevocationBlastRadius({required this.providerTenantCount, required this.identityCount, required this.organizationCount, required this.projectCount, required this.interactiveSessionCount, required this.refreshTokenFamilyCount, required this.offlineGrantCount, required this.downstreamSessionCount, required this.impersonationSessionCount, required this.userApiCredentialCount, required this.registeredDeviceSessionCount, required this.inventoryStatus, required this.unknownFields});
+  final int? providerTenantCount; final int? identityCount; final int? organizationCount; final int? projectCount; final int? interactiveSessionCount; final int? refreshTokenFamilyCount; final int? offlineGrantCount; final int? downstreamSessionCount; final int? impersonationSessionCount; final int? userApiCredentialCount; final int? registeredDeviceSessionCount; final InventoryStatus inventoryStatus; final List<String> unknownFields;
 }
 final class RevocationPreviewTarget {
   const RevocationPreviewTarget({required this.targetIdHash, required this.identity, required this.scope, required this.estimatedResourceCount, required this.supported, required this.requiresProviderFanout, required this.residualAccessTokenMaxSeconds, required this.warningCodes});
@@ -97,8 +114,12 @@ final class RevocationRequestCorrelation {
   final String requestId; final String traceId; final String reasonCode; final String? ticketReferenceHash;
 }
 final class GlobalRevocationRequest {
-  const GlobalRevocationRequest({required this.schema, required this.principalId, required this.previewId, required this.idempotencyKey, required this.selectedScopes, required this.principalSelectionConfirmed, required this.requestedAt, required this.stepUp, required this.correlation, required this.redaction});
-  final String schema; final String principalId; final String previewId; final String idempotencyKey; final List<RevocationScope> selectedScopes; final bool principalSelectionConfirmed; final String requestedAt; final RevocationStepUp stepUp; final RevocationRequestCorrelation correlation; final RevocationRedaction redaction;
+  const GlobalRevocationRequest({required this.schema, required this.previewId, required this.commitAuthorizationId, required this.idempotencyKey, required this.selectedScopes, required this.requestedAt, required this.correlation, required this.redaction});
+  final String schema; final String previewId; final String commitAuthorizationId; final String idempotencyKey; final List<RevocationScope> selectedScopes; final String requestedAt; final RevocationRequestCorrelation correlation; final RevocationRedaction redaction;
+}
+final class GlobalRevocationCommitAuthorization {
+  const GlobalRevocationCommitAuthorization({required this.schema, required this.commitAuthorizationId, required this.previewId, required this.principalId, required this.selectedScopes, required this.previewCreatedByPrincipalIdHash, required this.commitAuthorizedByPrincipalIdHash, required this.commitAuthorizedBySessionIdHash, required this.dualControlRequired, required this.dualControlSatisfied, required this.verifiedStepUp, required this.issuedAt, required this.expiresAt, required this.redaction});
+  final String schema; final String commitAuthorizationId; final String previewId; final String principalId; final List<RevocationScope> selectedScopes; final String previewCreatedByPrincipalIdHash; final String commitAuthorizedByPrincipalIdHash; final String commitAuthorizedBySessionIdHash; final bool dualControlRequired; final bool dualControlSatisfied; final RevocationStepUp verifiedStepUp; final String issuedAt; final String expiresAt; final RevocationRedaction redaction;
 }
 final class RevocationTargetResult {
   const RevocationTargetResult({required this.targetIdHash, required this.identity, required this.scope, required this.state, required this.attemptCount, required this.retryable, this.lastAttemptAt, this.nextAttemptAt, this.retryAfterSeconds, this.completedAt, this.resultCode, this.providerRequestIdHash, required this.residualAccessTokenMaxSeconds});

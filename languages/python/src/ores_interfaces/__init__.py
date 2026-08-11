@@ -18,6 +18,8 @@ class DirectoryAdminRole(StrEnum):
     DIRECTORY_AUDITOR="directory_auditor"
 class PrincipalSearchState(StrEnum):
     NO_MATCH="no_match"; UNIQUE="unique"; AMBIGUOUS="ambiguous"
+class InventoryStatus(StrEnum):
+    COMPLETE="complete"; PARTIAL="partial"; UNAVAILABLE="unavailable"
 class RevocationScope(StrEnum):
     INTERACTIVE_SESSIONS="interactive_sessions"
     REFRESH_TOKEN_FAMILIES="refresh_token_families"
@@ -91,18 +93,49 @@ class PrincipalSearchResult:
     redaction: RevocationRedaction
 
 @dataclass(frozen=True, slots=True)
+class PrincipalSelectionRequest:
+    schema: str
+    request_id: str
+    lookup_id: str
+    principal_id: str
+    selection_confirmed: bool
+    requested_at: str
+    redaction: RevocationRedaction
+
+@dataclass(frozen=True, slots=True)
+class PrincipalSelectionResult:
+    schema: str
+    selection_id: str
+    lookup_id: str
+    principal_id: str
+    selected_at: str
+    expires_at: str
+    redaction: RevocationRedaction
+
+@dataclass(frozen=True, slots=True)
+class GlobalRevocationPreviewRequest:
+    schema: str
+    request_id: str
+    selection_id: str
+    selected_scopes: tuple[RevocationScope, ...]
+    requested_at: str
+    redaction: RevocationRedaction
+
+@dataclass(frozen=True, slots=True)
 class RevocationBlastRadius:
-    provider_tenant_count: int
-    identity_count: int
-    organization_count: int
-    project_count: int
-    interactive_session_count: int
-    refresh_token_family_count: int
-    offline_grant_count: int
-    downstream_session_count: int
-    impersonation_session_count: int
-    user_api_credential_count: int
-    registered_device_session_count: int
+    provider_tenant_count: int | None
+    identity_count: int | None
+    organization_count: int | None
+    project_count: int | None
+    interactive_session_count: int | None
+    refresh_token_family_count: int | None
+    offline_grant_count: int | None
+    downstream_session_count: int | None
+    impersonation_session_count: int | None
+    user_api_credential_count: int | None
+    registered_device_session_count: int | None
+    inventory_status: InventoryStatus
+    unknown_fields: tuple[str, ...]
 
 @dataclass(frozen=True, slots=True)
 class RevocationPreviewTarget:
@@ -154,14 +187,29 @@ class RevocationRequestCorrelation:
 @dataclass(frozen=True, slots=True)
 class GlobalRevocationRequest:
     schema: str
-    principal_id: str
     preview_id: str
+    commit_authorization_id: str
     idempotency_key: str
     selected_scopes: tuple[RevocationScope, ...]
-    principal_selection_confirmed: bool
     requested_at: str
-    step_up: RevocationStepUp
     correlation: RevocationRequestCorrelation
+    redaction: RevocationRedaction
+
+@dataclass(frozen=True, slots=True)
+class GlobalRevocationCommitAuthorization:
+    schema: str
+    commit_authorization_id: str
+    preview_id: str
+    principal_id: str
+    selected_scopes: tuple[RevocationScope, ...]
+    preview_created_by_principal_id_hash: str
+    commit_authorized_by_principal_id_hash: str
+    commit_authorized_by_session_id_hash: str
+    dual_control_required: bool
+    dual_control_satisfied: bool
+    verified_step_up: RevocationStepUp
+    issued_at: str
+    expires_at: str
     redaction: RevocationRedaction
 
 @dataclass(frozen=True, slots=True)

@@ -15,6 +15,7 @@ public enum DirectoryAdminRole: String, Codable, Sendable {
   case directoryAuditor = "directory_auditor"
 }
 public enum PrincipalSearchState: String, Codable, Sendable { case noMatch = "no_match", unique, ambiguous }
+public enum InventoryStatus: String, Codable, Sendable { case complete, partial, unavailable }
 public enum RevocationScope: String, Codable, Sendable {
   case interactiveSessions = "interactive_sessions"
   case refreshTokenFamilies = "refresh_token_families"
@@ -49,8 +50,17 @@ public struct PrincipalSearchCandidate: Codable, Sendable {
 public struct PrincipalSearchResult: Codable, Sendable {
   public let schema: String; public let lookupId: String; public let emailSearchKeyHash: String; public let state: PrincipalSearchState; public let candidates: [PrincipalSearchCandidate]; public let requiresExplicitPrincipalSelection: Bool; public let generatedAt: String; public let redaction: RevocationRedaction
 }
+public struct PrincipalSelectionRequest: Codable, Sendable {
+  public let schema: String; public let requestId: String; public let lookupId: String; public let principalId: String; public let selectionConfirmed: Bool; public let requestedAt: String; public let redaction: RevocationRedaction
+}
+public struct PrincipalSelectionResult: Codable, Sendable {
+  public let schema: String; public let selectionId: String; public let lookupId: String; public let principalId: String; public let selectedAt: String; public let expiresAt: String; public let redaction: RevocationRedaction
+}
+public struct GlobalRevocationPreviewRequest: Codable, Sendable {
+  public let schema: String; public let requestId: String; public let selectionId: String; public let selectedScopes: [RevocationScope]; public let requestedAt: String; public let redaction: RevocationRedaction
+}
 public struct RevocationBlastRadius: Codable, Sendable {
-  public let providerTenantCount: UInt64; public let identityCount: UInt64; public let organizationCount: UInt64; public let projectCount: UInt64; public let interactiveSessionCount: UInt64; public let refreshTokenFamilyCount: UInt64; public let offlineGrantCount: UInt64; public let downstreamSessionCount: UInt64; public let impersonationSessionCount: UInt64; public let userApiCredentialCount: UInt64; public let registeredDeviceSessionCount: UInt64
+  public let providerTenantCount: UInt64?; public let identityCount: UInt64?; public let organizationCount: UInt64?; public let projectCount: UInt64?; public let interactiveSessionCount: UInt64?; public let refreshTokenFamilyCount: UInt64?; public let offlineGrantCount: UInt64?; public let downstreamSessionCount: UInt64?; public let impersonationSessionCount: UInt64?; public let userApiCredentialCount: UInt64?; public let registeredDeviceSessionCount: UInt64?; public let inventoryStatus: InventoryStatus; public let unknownFields: [String]
 }
 public struct RevocationPreviewTarget: Codable, Sendable {
   public let targetIdHash: String; public let identity: ProviderIdentityRef; public let scope: RevocationScope; public let estimatedResourceCount: UInt64; public let supported: Bool; public let requiresProviderFanout: Bool; public let residualAccessTokenMaxSeconds: UInt64?; public let warningCodes: [String]
@@ -66,7 +76,10 @@ public struct RevocationRequestCorrelation: Codable, Sendable {
   public let requestId: String; public let traceId: String; public let reasonCode: String; public let ticketReferenceHash: String?
 }
 public struct GlobalRevocationRequest: Codable, Sendable {
-  public let schema: String; public let principalId: String; public let previewId: String; public let idempotencyKey: String; public let selectedScopes: [RevocationScope]; public let principalSelectionConfirmed: Bool; public let requestedAt: String; public let stepUp: RevocationStepUp; public let correlation: RevocationRequestCorrelation; public let redaction: RevocationRedaction
+  public let schema: String; public let previewId: String; public let commitAuthorizationId: String; public let idempotencyKey: String; public let selectedScopes: [RevocationScope]; public let requestedAt: String; public let correlation: RevocationRequestCorrelation; public let redaction: RevocationRedaction
+}
+public struct GlobalRevocationCommitAuthorization: Codable, Sendable {
+  public let schema: String; public let commitAuthorizationId: String; public let previewId: String; public let principalId: String; public let selectedScopes: [RevocationScope]; public let previewCreatedByPrincipalIdHash: String; public let commitAuthorizedByPrincipalIdHash: String; public let commitAuthorizedBySessionIdHash: String; public let dualControlRequired: Bool; public let dualControlSatisfied: Bool; public let verifiedStepUp: RevocationStepUp; public let issuedAt: String; public let expiresAt: String; public let redaction: RevocationRedaction
 }
 public struct RevocationTargetResult: Codable, Sendable {
   public let targetIdHash: String; public let identity: ProviderIdentityRef; public let scope: RevocationScope; public let state: RevocationTargetState; public let attemptCount: UInt32; public let retryable: Bool; public let lastAttemptAt: String?; public let nextAttemptAt: String?; public let retryAfterSeconds: UInt64?; public let completedAt: String?; public let resultCode: String?; public let providerRequestIdHash: String?; public let residualAccessTokenMaxSeconds: UInt64?

@@ -21,7 +21,9 @@
     "downstreamSessionCount": 2,
     "impersonationSessionCount": 0,
     "userApiCredentialCount": 0,
-    "registeredDeviceSessionCount": 2
+    "registeredDeviceSessionCount": 2,
+    "inventoryStatus": "complete",
+    "unknownFields": []
   },
   "targets": [
     {

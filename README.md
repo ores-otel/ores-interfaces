@@ -55,19 +55,25 @@ The revocation workflow is deliberately separate from the existing read projecti
 2. `PrincipalSearchResult` can return no match, one match, or multiple candidates. A candidate
    carries an immutable `principalId` plus provider tenant and internal opaque identity handles;
    an ambiguous result requires explicit principal selection.
-3. `GlobalRevocationPreview` freezes the selected scopes and displays the complete provider,
-   organization, project, session, grant, credential, and device-session blast radius before
-   execution.
-4. `GlobalRevocationRequest` requires the unexpired preview, a caller idempotency key, explicit
-   principal confirmation, and a fresh phishing-resistant WebAuthn step-up at AAL2 or AAL3.
-   The server clock must fall between `verifiedAt` and `freshUntil`; caller timestamps are not
-   themselves evidence of freshness. Reusing an idempotency key with different principal,
-   preview, or scope values is a conflict, not a second operation.
-5. Creating `GlobalRevocationOperation` atomically increments the principal auth epoch and
+3. `PrincipalSelectionRequest` confirms one candidate from the stored lookup. Its result returns
+   a short-lived opaque `selectionId`; `GlobalRevocationPreviewRequest` carries only that handle
+   and the exact scopes, never a principal or email field.
+4. `GlobalRevocationPreview` freezes the selected scopes and displays the provider, organization,
+   project, session, grant, credential, and device-session blast radius before execution. Each
+   count is either an authoritative integer (including zero) or `null`; `inventoryStatus` and
+   exact `unknownFields` make partial or unavailable inventory explicit.
+5. A fresh phishing-resistant WebAuthn step-up at AAL2 or AAL3 produces a short-lived, one-use
+   `GlobalRevocationCommitAuthorization`. It binds the preview, immutable principal, exact scope
+   set, verified actor, and optional dual-control decision. Its expiry cannot exceed either the
+   preview expiry or step-up freshness limit. The browser receives an opaque handle and cannot
+   assert actor, session, evidence, assurance, or freshness fields in `GlobalRevocationRequest`.
+   Reusing an idempotency key or commit authorization with different resolved state is a conflict,
+   not a second operation.
+6. Creating `GlobalRevocationOperation` atomically increments the principal auth epoch and
    records a `notBefore` fence before provider fan-out starts. Shared Auth authorizers reject
    older tokens even when a provider is unavailable or a provider JWT remains valid until its
    expiry.
-6. Each provider target reports a redacted machine result, retryability, attempts, and bounded
+7. Each provider target reports a redacted machine result, retryability, attempts, and bounded
    retry timing. `retry_scheduled` requires both `nextAttemptAt` and a positive
    `retryAfterSeconds`; terminal targets (`succeeded`, `failed`, `skipped`, or `unsupported`)
    carry neither field. A job can truthfully finish `partial`; it must never report success
@@ -81,8 +87,8 @@ keys are write-only and only their keyed digests appear in responses and audit r
 ### Compatibility
 
 The dashboard query, response, user, session, role, organization, project, and capability
-definitions retain their v1 fields and semantics. Directory grants and revocation add new
-discriminator values and new `$defs` only. Consumers that do not implement them can continue using the
+definitions retain their v1 fields and semantics. Directory grants and the still-draft revocation
+control-plane contracts do not weaken those projections. Consumers that do not implement them can continue using the
 read projections; exhaustive discriminator consumers should negotiate or reject unknown
 contract names rather than silently interpreting them.
 

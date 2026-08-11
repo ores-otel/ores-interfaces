@@ -18,6 +18,7 @@ export const DirectoryAdminRole = Object.freeze({
   DIRECTORY_AUDITOR: "directory_auditor"
 });
 export const PrincipalSearchState = Object.freeze({NO_MATCH: "no_match", UNIQUE: "unique", AMBIGUOUS: "ambiguous"});
+export const InventoryStatus = Object.freeze({COMPLETE: "complete", PARTIAL: "partial", UNAVAILABLE: "unavailable"});
 export const RevocationScope = Object.freeze({
   INTERACTIVE_SESSIONS: "interactive_sessions",
   REFRESH_TOKEN_FAMILIES: "refresh_token_families",

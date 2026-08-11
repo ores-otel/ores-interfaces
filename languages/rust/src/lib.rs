@@ -56,6 +56,19 @@ impl PrincipalSearchState {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InventoryStatus { Complete, Partial, Unavailable }
+
+impl InventoryStatus {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Complete => "complete",
+            Self::Partial => "partial",
+            Self::Unavailable => "unavailable",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RevocationScope {
     InteractiveSessions,
     RefreshTokenFamilies,
@@ -233,18 +246,52 @@ pub struct PrincipalSearchResult {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrincipalSelectionRequest {
+    pub schema: String,
+    pub request_id: String,
+    pub lookup_id: String,
+    pub principal_id: String,
+    pub selection_confirmed: bool,
+    pub requested_at: String,
+    pub redaction: RevocationRedaction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrincipalSelectionResult {
+    pub schema: String,
+    pub selection_id: String,
+    pub lookup_id: String,
+    pub principal_id: String,
+    pub selected_at: String,
+    pub expires_at: String,
+    pub redaction: RevocationRedaction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GlobalRevocationPreviewRequest {
+    pub schema: String,
+    pub request_id: String,
+    pub selection_id: String,
+    pub selected_scopes: Vec<RevocationScope>,
+    pub requested_at: String,
+    pub redaction: RevocationRedaction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RevocationBlastRadius {
-    pub provider_tenant_count: u64,
-    pub identity_count: u64,
-    pub organization_count: u64,
-    pub project_count: u64,
-    pub interactive_session_count: u64,
-    pub refresh_token_family_count: u64,
-    pub offline_grant_count: u64,
-    pub downstream_session_count: u64,
-    pub impersonation_session_count: u64,
-    pub user_api_credential_count: u64,
-    pub registered_device_session_count: u64,
+    pub provider_tenant_count: Option<u64>,
+    pub identity_count: Option<u64>,
+    pub organization_count: Option<u64>,
+    pub project_count: Option<u64>,
+    pub interactive_session_count: Option<u64>,
+    pub refresh_token_family_count: Option<u64>,
+    pub offline_grant_count: Option<u64>,
+    pub downstream_session_count: Option<u64>,
+    pub impersonation_session_count: Option<u64>,
+    pub user_api_credential_count: Option<u64>,
+    pub registered_device_session_count: Option<u64>,
+    pub inventory_status: InventoryStatus,
+    pub unknown_fields: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -307,14 +354,30 @@ pub struct RevocationRequestCorrelation {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GlobalRevocationRequest {
     pub schema: String,
-    pub principal_id: String,
     pub preview_id: String,
+    pub commit_authorization_id: String,
     pub idempotency_key: String,
     pub selected_scopes: Vec<RevocationScope>,
-    pub principal_selection_confirmed: bool,
     pub requested_at: String,
-    pub step_up: RevocationStepUp,
     pub correlation: RevocationRequestCorrelation,
+    pub redaction: RevocationRedaction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GlobalRevocationCommitAuthorization {
+    pub schema: String,
+    pub commit_authorization_id: String,
+    pub preview_id: String,
+    pub principal_id: String,
+    pub selected_scopes: Vec<RevocationScope>,
+    pub preview_created_by_principal_id_hash: String,
+    pub commit_authorized_by_principal_id_hash: String,
+    pub commit_authorized_by_session_id_hash: String,
+    pub dual_control_required: bool,
+    pub dual_control_satisfied: bool,
+    pub verified_step_up: RevocationStepUp,
+    pub issued_at: String,
+    pub expires_at: String,
     pub redaction: RevocationRedaction,
 }
 
@@ -449,6 +512,7 @@ mod tests {
         assert!(RevocationJobState::Partial.is_terminal());
         assert!(!RevocationJobState::Running.is_terminal());
         assert_eq!(RevocationScope::InteractiveSessions.as_str(), "interactive_sessions");
+        assert_eq!(InventoryStatus::Unavailable.as_str(), "unavailable");
     }
 
     #[test]

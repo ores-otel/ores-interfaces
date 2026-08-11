@@ -36,6 +36,9 @@ const (
 type PrincipalSearchState string
 const ( PrincipalSearchNoMatch PrincipalSearchState = "no_match"; PrincipalSearchUnique PrincipalSearchState = "unique"; PrincipalSearchAmbiguous PrincipalSearchState = "ambiguous" )
 
+type InventoryStatus string
+const ( InventoryComplete InventoryStatus = "complete"; InventoryPartial InventoryStatus = "partial"; InventoryUnavailable InventoryStatus = "unavailable" )
+
 type RevocationScope string
 const (
     RevocationInteractiveSessions RevocationScope = "interactive_sessions"
@@ -116,18 +119,49 @@ type PrincipalSearchResult struct {
     Redaction RevocationRedaction `json:"redaction"`
 }
 
+type PrincipalSelectionRequest struct {
+    Schema string `json:"schema"`
+    RequestID string `json:"requestId"`
+    LookupID string `json:"lookupId"`
+    PrincipalID string `json:"principalId"`
+    SelectionConfirmed bool `json:"selectionConfirmed"`
+    RequestedAt string `json:"requestedAt"`
+    Redaction RevocationRedaction `json:"redaction"`
+}
+
+type PrincipalSelectionResult struct {
+    Schema string `json:"schema"`
+    SelectionID string `json:"selectionId"`
+    LookupID string `json:"lookupId"`
+    PrincipalID string `json:"principalId"`
+    SelectedAt string `json:"selectedAt"`
+    ExpiresAt string `json:"expiresAt"`
+    Redaction RevocationRedaction `json:"redaction"`
+}
+
+type GlobalRevocationPreviewRequest struct {
+    Schema string `json:"schema"`
+    RequestID string `json:"requestId"`
+    SelectionID string `json:"selectionId"`
+    SelectedScopes []RevocationScope `json:"selectedScopes"`
+    RequestedAt string `json:"requestedAt"`
+    Redaction RevocationRedaction `json:"redaction"`
+}
+
 type RevocationBlastRadius struct {
-    ProviderTenantCount uint64 `json:"providerTenantCount"`
-    IdentityCount uint64 `json:"identityCount"`
-    OrganizationCount uint64 `json:"organizationCount"`
-    ProjectCount uint64 `json:"projectCount"`
-    InteractiveSessionCount uint64 `json:"interactiveSessionCount"`
-    RefreshTokenFamilyCount uint64 `json:"refreshTokenFamilyCount"`
-    OfflineGrantCount uint64 `json:"offlineGrantCount"`
-    DownstreamSessionCount uint64 `json:"downstreamSessionCount"`
-    ImpersonationSessionCount uint64 `json:"impersonationSessionCount"`
-    UserAPICredentialCount uint64 `json:"userApiCredentialCount"`
-    RegisteredDeviceSessionCount uint64 `json:"registeredDeviceSessionCount"`
+    ProviderTenantCount *uint64 `json:"providerTenantCount"`
+    IdentityCount *uint64 `json:"identityCount"`
+    OrganizationCount *uint64 `json:"organizationCount"`
+    ProjectCount *uint64 `json:"projectCount"`
+    InteractiveSessionCount *uint64 `json:"interactiveSessionCount"`
+    RefreshTokenFamilyCount *uint64 `json:"refreshTokenFamilyCount"`
+    OfflineGrantCount *uint64 `json:"offlineGrantCount"`
+    DownstreamSessionCount *uint64 `json:"downstreamSessionCount"`
+    ImpersonationSessionCount *uint64 `json:"impersonationSessionCount"`
+    UserAPICredentialCount *uint64 `json:"userApiCredentialCount"`
+    RegisteredDeviceSessionCount *uint64 `json:"registeredDeviceSessionCount"`
+    InventoryStatus InventoryStatus `json:"inventoryStatus"`
+    UnknownFields []string `json:"unknownFields"`
 }
 
 type RevocationPreviewTarget struct {
@@ -177,14 +211,29 @@ type RevocationRequestCorrelation struct { RequestID string `json:"requestId"`; 
 
 type GlobalRevocationRequest struct {
     Schema string `json:"schema"`
-    PrincipalID string `json:"principalId"`
     PreviewID string `json:"previewId"`
+    CommitAuthorizationID string `json:"commitAuthorizationId"`
     IdempotencyKey string `json:"idempotencyKey"`
     SelectedScopes []RevocationScope `json:"selectedScopes"`
-    PrincipalSelectionConfirmed bool `json:"principalSelectionConfirmed"`
     RequestedAt string `json:"requestedAt"`
-    StepUp RevocationStepUp `json:"stepUp"`
     Correlation RevocationRequestCorrelation `json:"correlation"`
+    Redaction RevocationRedaction `json:"redaction"`
+}
+
+type GlobalRevocationCommitAuthorization struct {
+    Schema string `json:"schema"`
+    CommitAuthorizationID string `json:"commitAuthorizationId"`
+    PreviewID string `json:"previewId"`
+    PrincipalID string `json:"principalId"`
+    SelectedScopes []RevocationScope `json:"selectedScopes"`
+    PreviewCreatedByPrincipalIDHash string `json:"previewCreatedByPrincipalIdHash"`
+    CommitAuthorizedByPrincipalIDHash string `json:"commitAuthorizedByPrincipalIdHash"`
+    CommitAuthorizedBySessionIDHash string `json:"commitAuthorizedBySessionIdHash"`
+    DualControlRequired bool `json:"dualControlRequired"`
+    DualControlSatisfied bool `json:"dualControlSatisfied"`
+    VerifiedStepUp RevocationStepUp `json:"verifiedStepUp"`
+    IssuedAt string `json:"issuedAt"`
+    ExpiresAt string `json:"expiresAt"`
     Redaction RevocationRedaction `json:"redaction"`
 }
 

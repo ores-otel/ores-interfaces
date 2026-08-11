@@ -24,10 +24,12 @@ Shared Auth global revocation additionally requires:
 
 1. immutable principal IDs; email is a transient operator search input and becomes a keyed
    digest before it enters the canonical contract;
-2. explicit ambiguity handling and principal confirmation;
+2. explicit ambiguity handling and a short-lived server-bound principal-selection handoff;
 3. provider tenant plus internal opaque identity handles, never raw provider credentials;
-4. preview-before-execute blast-radius reporting and explicit revocation scopes;
-5. fresh phishing-resistant AAL2-or-higher WebAuthn step-up;
+4. preview-before-execute blast-radius reporting with nullable unknown counts, explicit inventory
+   status, exact unknown-field names, and explicit revocation scopes;
+5. fresh phishing-resistant AAL2-or-higher WebAuthn step-up represented to the committing client
+   only by a short-lived, one-use server-issued commit-authorization handle;
 6. an auth-epoch/not-before fence committed before provider fan-out;
 7. idempotent durable jobs with honest partial state and per-target bounded retry metadata,
    present only for scheduled retries and absent from terminal target results;
@@ -35,5 +37,5 @@ Shared Auth global revocation additionally requires:
    response bodies, or biometric material.
 
 Changes require a versioned schema path and compatibility notes. Do not mutate v1 semantics
-in place after a stable release. The Shared Auth revocation additions preserve all existing v1
-read-projection definitions and add new contract discriminators and definitions only.
+in place after a stable release. The still-draft Shared Auth revocation control-plane definitions
+preserve all existing v1 read-projection semantics.

@@ -29,6 +29,12 @@ public final class AuthContracts {
     PrincipalSearchState(String wireValue) { this.wireValue = wireValue; }
     public String wireValue() { return wireValue; }
   }
+  public enum InventoryStatus {
+    COMPLETE("complete"), PARTIAL("partial"), UNAVAILABLE("unavailable");
+    private final String wireValue;
+    InventoryStatus(String wireValue) { this.wireValue = wireValue; }
+    public String wireValue() { return wireValue; }
+  }
   public enum RevocationScope {
     INTERACTIVE_SESSIONS("interactive_sessions"),
     REFRESH_TOKEN_FAMILIES("refresh_token_families"),
@@ -68,14 +74,18 @@ public final class AuthContracts {
   public record PrincipalSearchRequest(String schema, String requestId, String requestedByPrincipalId, String emailSearchKeyHash, String purpose, String requestedAt, RevocationRedaction redaction) {}
   public record PrincipalSearchCandidate(String principalId, List<ProviderIdentityRef> identities, long organizationCount, long activeSessionCount) {}
   public record PrincipalSearchResult(String schema, String lookupId, String emailSearchKeyHash, PrincipalSearchState state, List<PrincipalSearchCandidate> candidates, boolean requiresExplicitPrincipalSelection, String generatedAt, RevocationRedaction redaction) {}
-  public record RevocationBlastRadius(long providerTenantCount, long identityCount, long organizationCount, long projectCount, long interactiveSessionCount, long refreshTokenFamilyCount, long offlineGrantCount, long downstreamSessionCount, long impersonationSessionCount, long userApiCredentialCount, long registeredDeviceSessionCount) {}
+  public record PrincipalSelectionRequest(String schema, String requestId, String lookupId, String principalId, boolean selectionConfirmed, String requestedAt, RevocationRedaction redaction) {}
+  public record PrincipalSelectionResult(String schema, String selectionId, String lookupId, String principalId, String selectedAt, String expiresAt, RevocationRedaction redaction) {}
+  public record GlobalRevocationPreviewRequest(String schema, String requestId, String selectionId, List<RevocationScope> selectedScopes, String requestedAt, RevocationRedaction redaction) {}
+  public record RevocationBlastRadius(Long providerTenantCount, Long identityCount, Long organizationCount, Long projectCount, Long interactiveSessionCount, Long refreshTokenFamilyCount, Long offlineGrantCount, Long downstreamSessionCount, Long impersonationSessionCount, Long userApiCredentialCount, Long registeredDeviceSessionCount, InventoryStatus inventoryStatus, List<String> unknownFields) {}
   public record RevocationPreviewTarget(String targetIdHash, ProviderIdentityRef identity, RevocationScope scope, long estimatedResourceCount, boolean supported, boolean requiresProviderFanout, Long residualAccessTokenMaxSeconds, List<String> warningCodes) {}
   public record GlobalRevocationPreview(String schema, String previewId, String principalId, String generatedAt, String expiresAt, List<RevocationScope> selectedScopes, RevocationBlastRadius blastRadius, List<RevocationPreviewTarget> targets, boolean ambiguityResolved, boolean requiresStepUp, AssuranceLevel minimumAssurance, boolean phishingResistantStepUpRequired, RevocationRedaction redaction) {}
   public record RevocationStepUp(String actorPrincipalId, String actorSessionIdHash, String evidenceIdHash, AssuranceLevel assurance, List<AuthMethod> authMethods, boolean phishingResistant, String verifiedAt, String freshUntil) {
     public boolean sufficient() { return (assurance == AssuranceLevel.AAL2 || assurance == AssuranceLevel.AAL3) && phishingResistant && authMethods.contains(AuthMethod.WEBAUTHN); }
   }
   public record RevocationRequestCorrelation(String requestId, String traceId, String reasonCode, String ticketReferenceHash) {}
-  public record GlobalRevocationRequest(String schema, String principalId, String previewId, String idempotencyKey, List<RevocationScope> selectedScopes, boolean principalSelectionConfirmed, String requestedAt, RevocationStepUp stepUp, RevocationRequestCorrelation correlation, RevocationRedaction redaction) {}
+  public record GlobalRevocationRequest(String schema, String previewId, String commitAuthorizationId, String idempotencyKey, List<RevocationScope> selectedScopes, String requestedAt, RevocationRequestCorrelation correlation, RevocationRedaction redaction) {}
+  public record GlobalRevocationCommitAuthorization(String schema, String commitAuthorizationId, String previewId, String principalId, List<RevocationScope> selectedScopes, String previewCreatedByPrincipalIdHash, String commitAuthorizedByPrincipalIdHash, String commitAuthorizedBySessionIdHash, boolean dualControlRequired, boolean dualControlSatisfied, RevocationStepUp verifiedStepUp, String issuedAt, String expiresAt, RevocationRedaction redaction) {}
   public record RevocationTargetResult(String targetIdHash, ProviderIdentityRef identity, RevocationScope scope, RevocationTargetState state, int attemptCount, boolean retryable, String lastAttemptAt, String nextAttemptAt, Long retryAfterSeconds, String completedAt, String resultCode, String providerRequestIdHash, Long residualAccessTokenMaxSeconds) {}
   public record RevocationFence(String appliedAt, String notBefore, long previousAuthEpoch, long authEpoch, boolean effective) {}
   public record RevocationAuditCorrelation(String auditEventId, String correlationId, String requestId, String traceId, String actorPrincipalId, String actorSessionIdHash, String idempotencyKeyHash, String reasonCode, boolean rawEmailsPresent, boolean rawTokensPresent, boolean rawBiometricMaterialPresent) {}
