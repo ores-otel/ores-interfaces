@@ -32,6 +32,11 @@ dir = "contracts"
 name = "ores-platform-contracts"
 adapter = "none"
 
+[targets.shared-auth-contracts]
+dir = "contracts/shared-auth"
+name = "ores-shared-auth-contracts"
+adapter = "none"
+
 [targets.rust]
 dir = "languages/rust"
 name = "ores-interfaces-rust"
