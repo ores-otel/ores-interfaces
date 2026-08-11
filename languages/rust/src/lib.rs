@@ -1,10 +1,25 @@
 #![forbid(unsafe_code)]
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum AuthMethod { Jwt, Oidc, Webauthn, Totp, Kerberos, Ssh, OpenPgp, PlatformBiometric, Recovery }
+pub enum AuthMethod {
+    Jwt,
+    Oidc,
+    Webauthn,
+    Totp,
+    Kerberos,
+    Ssh,
+    OpenPgp,
+    PlatformBiometric,
+    Recovery,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum AssuranceLevel { Aal0, Aal1, Aal2, Aal3 }
+pub enum AssuranceLevel {
+    Aal0,
+    Aal1,
+    Aal2,
+    Aal3,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DirectoryAdminScope {
@@ -47,16 +62,28 @@ impl DirectoryAdminRole {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PrincipalSearchState { NoMatch, Unique, Ambiguous }
+pub enum PrincipalSearchState {
+    NoMatch,
+    Unique,
+    Ambiguous,
+}
 
 impl PrincipalSearchState {
     pub const fn as_str(self) -> &'static str {
-        match self { Self::NoMatch => "no_match", Self::Unique => "unique", Self::Ambiguous => "ambiguous" }
+        match self {
+            Self::NoMatch => "no_match",
+            Self::Unique => "unique",
+            Self::Ambiguous => "ambiguous",
+        }
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum InventoryStatus { Complete, Partial, Unavailable }
+pub enum InventoryStatus {
+    Complete,
+    Partial,
+    Unavailable,
+}
 
 impl InventoryStatus {
     pub const fn as_str(self) -> &'static str {
@@ -94,7 +121,14 @@ impl RevocationScope {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RevocationJobState { Queued, Running, Partial, Succeeded, Failed, Cancelled }
+pub enum RevocationJobState {
+    Queued,
+    Running,
+    Partial,
+    Succeeded,
+    Failed,
+    Cancelled,
+}
 
 impl RevocationJobState {
     pub const fn as_str(self) -> &'static str {
@@ -109,7 +143,10 @@ impl RevocationJobState {
     }
 
     pub fn is_terminal(self) -> bool {
-        matches!(self, Self::Partial | Self::Succeeded | Self::Failed | Self::Cancelled)
+        matches!(
+            self,
+            Self::Partial | Self::Succeeded | Self::Failed | Self::Cancelled
+        )
     }
 }
 
@@ -139,7 +176,13 @@ impl RevocationTargetState {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PrincipalKind { Human, Service, Workload, Device, Automation }
+pub enum PrincipalKind {
+    Human,
+    Service,
+    Workload,
+    Device,
+    Automation,
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrincipalRef {
@@ -519,12 +562,14 @@ mod tests {
             verified_by_platform_authenticator: true,
             user_verification_required: true,
             raw_biometric_material_present: false,
-        }.is_safe());
+        }
+        .is_safe());
         assert!(!PlatformBiometricProof {
             verified_by_platform_authenticator: true,
             user_verification_required: true,
             raw_biometric_material_present: true,
-        }.is_safe());
+        }
+        .is_safe());
     }
 
     #[test]
@@ -550,13 +595,19 @@ mod tests {
     fn partial_revocation_is_an_honest_terminal_state() {
         assert!(RevocationJobState::Partial.is_terminal());
         assert!(!RevocationJobState::Running.is_terminal());
-        assert_eq!(RevocationScope::InteractiveSessions.as_str(), "interactive_sessions");
+        assert_eq!(
+            RevocationScope::InteractiveSessions.as_str(),
+            "interactive_sessions"
+        );
         assert_eq!(InventoryStatus::Unavailable.as_str(), "unavailable");
     }
 
     #[test]
     fn directory_admin_values_are_exact() {
-        assert_eq!(DirectoryAdminRole::DirectoryAdmin.as_str(), "directory_admin");
+        assert_eq!(
+            DirectoryAdminRole::DirectoryAdmin.as_str(),
+            "directory_admin"
+        );
         assert_eq!(
             DirectoryAdminScope::RevocationsExecute.as_str(),
             "directory.revocations.execute"

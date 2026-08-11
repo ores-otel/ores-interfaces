@@ -29,14 +29,16 @@ void main() {
   if (!stepUp.sufficient) {
     throw StateError('valid revocation step-up rejected');
   }
-  if (!RevocationJobState.partial.terminal || RevocationJobState.running.terminal) {
+  if (!RevocationJobState.partial.terminal ||
+      RevocationJobState.running.terminal) {
     throw StateError('revocation terminal-state drift');
   }
   if (RevocationScope.interactiveSessions.wireValue != 'interactive_sessions') {
     throw StateError('revocation scope drift');
   }
   if (DirectoryAdminRole.directoryAdmin.wireValue != 'directory_admin' ||
-      DirectoryAdminScope.revocationsExecute.wireValue != 'directory.revocations.execute') {
+      DirectoryAdminScope.revocationsExecute.wireValue !=
+          'directory.revocations.execute') {
     throw StateError('directory admin contract drift');
   }
 }
