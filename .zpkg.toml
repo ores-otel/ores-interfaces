@@ -20,8 +20,13 @@ tag_format = "v{version}"
 exclude = [".github/**", ".zed/**", ".zpkg.lock", "zed_modules/**", "**/target/**", "**/node_modules/**", "**/__pycache__/**", "**/.dart_tool/**", "**/build/**", "**/*.class"]
 smoke_test = "python3 scripts/check_contracts.py"
 
-# The root [package] is the canonical ores-otel/ores-interfaces artifact.
-# These targets publish independently installable language slices.
+# With explicit targets, Zed publishes only those targets. The whole-repository
+# target retains the canonical package coordinate consumed by dependants.
+[targets.repository]
+dir = "."
+name = "ores-interfaces"
+adapter = "none"
+
 [targets.contracts]
 dir = "contracts"
 name = "ores-platform-contracts"
