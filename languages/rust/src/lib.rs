@@ -7,6 +7,85 @@ pub enum AuthMethod { Jwt, Oidc, Webauthn, Totp, Kerberos, Ssh, OpenPgp, Platfor
 pub enum AssuranceLevel { Aal0, Aal1, Aal2, Aal3 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PrincipalSearchState { NoMatch, Unique, Ambiguous }
+
+impl PrincipalSearchState {
+    pub const fn as_str(self) -> &'static str {
+        match self { Self::NoMatch => "no_match", Self::Unique => "unique", Self::Ambiguous => "ambiguous" }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RevocationScope {
+    InteractiveSessions,
+    RefreshTokenFamilies,
+    OfflineGrants,
+    DownstreamSessions,
+    ImpersonationSessions,
+    UserApiCredentials,
+    RegisteredDeviceSessions,
+}
+
+impl RevocationScope {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InteractiveSessions => "interactive_sessions",
+            Self::RefreshTokenFamilies => "refresh_token_families",
+            Self::OfflineGrants => "offline_grants",
+            Self::DownstreamSessions => "downstream_sessions",
+            Self::ImpersonationSessions => "impersonation_sessions",
+            Self::UserApiCredentials => "user_api_credentials",
+            Self::RegisteredDeviceSessions => "registered_device_sessions",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RevocationJobState { Queued, Running, Partial, Succeeded, Failed, Cancelled }
+
+impl RevocationJobState {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Queued => "queued",
+            Self::Running => "running",
+            Self::Partial => "partial",
+            Self::Succeeded => "succeeded",
+            Self::Failed => "failed",
+            Self::Cancelled => "cancelled",
+        }
+    }
+
+    pub fn is_terminal(self) -> bool {
+        matches!(self, Self::Partial | Self::Succeeded | Self::Failed | Self::Cancelled)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RevocationTargetState {
+    Pending,
+    Running,
+    RetryScheduled,
+    Succeeded,
+    Failed,
+    Skipped,
+    Unsupported,
+}
+
+impl RevocationTargetState {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Pending => "pending",
+            Self::Running => "running",
+            Self::RetryScheduled => "retry_scheduled",
+            Self::Succeeded => "succeeded",
+            Self::Failed => "failed",
+            Self::Skipped => "skipped",
+            Self::Unsupported => "unsupported",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrincipalKind { Human, Service, Workload, Device, Automation }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -67,6 +146,196 @@ impl PlatformBiometricProof {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RevocationRedaction {
+    pub raw_emails_present: bool,
+    pub raw_tokens_present: bool,
+    pub raw_session_identifiers_present: bool,
+    pub raw_biometric_material_present: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProviderIdentityRef {
+    pub provider_id: String,
+    pub provider_tenant_id: String,
+    pub opaque_identity_handle: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrincipalSearchRequest {
+    pub schema: String,
+    pub request_id: String,
+    pub requested_by_principal_id: String,
+    pub email_search_key_hash: String,
+    pub purpose: String,
+    pub requested_at: String,
+    pub redaction: RevocationRedaction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrincipalSearchCandidate {
+    pub principal_id: String,
+    pub identities: Vec<ProviderIdentityRef>,
+    pub organization_count: u64,
+    pub active_session_count: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PrincipalSearchResult {
+    pub schema: String,
+    pub lookup_id: String,
+    pub email_search_key_hash: String,
+    pub state: PrincipalSearchState,
+    pub candidates: Vec<PrincipalSearchCandidate>,
+    pub requires_explicit_principal_selection: bool,
+    pub generated_at: String,
+    pub redaction: RevocationRedaction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RevocationBlastRadius {
+    pub provider_tenant_count: u64,
+    pub identity_count: u64,
+    pub organization_count: u64,
+    pub project_count: u64,
+    pub interactive_session_count: u64,
+    pub refresh_token_family_count: u64,
+    pub offline_grant_count: u64,
+    pub downstream_session_count: u64,
+    pub impersonation_session_count: u64,
+    pub user_api_credential_count: u64,
+    pub registered_device_session_count: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RevocationPreviewTarget {
+    pub target_id_hash: String,
+    pub identity: ProviderIdentityRef,
+    pub scope: RevocationScope,
+    pub estimated_resource_count: u64,
+    pub supported: bool,
+    pub requires_provider_fanout: bool,
+    pub residual_access_token_max_seconds: Option<u64>,
+    pub warning_codes: Vec<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GlobalRevocationPreview {
+    pub schema: String,
+    pub preview_id: String,
+    pub principal_id: String,
+    pub generated_at: String,
+    pub expires_at: String,
+    pub selected_scopes: Vec<RevocationScope>,
+    pub blast_radius: RevocationBlastRadius,
+    pub targets: Vec<RevocationPreviewTarget>,
+    pub ambiguity_resolved: bool,
+    pub requires_step_up: bool,
+    pub minimum_assurance: AssuranceLevel,
+    pub phishing_resistant_step_up_required: bool,
+    pub redaction: RevocationRedaction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RevocationStepUp {
+    pub actor_principal_id: String,
+    pub actor_session_id_hash: String,
+    pub evidence_id_hash: String,
+    pub assurance: AssuranceLevel,
+    pub auth_methods: Vec<AuthMethod>,
+    pub phishing_resistant: bool,
+    pub verified_at: String,
+    pub fresh_until: String,
+}
+
+impl RevocationStepUp {
+    pub fn is_sufficient(&self) -> bool {
+        self.assurance >= AssuranceLevel::Aal2
+            && self.phishing_resistant
+            && self.auth_methods.contains(&AuthMethod::Webauthn)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RevocationRequestCorrelation {
+    pub request_id: String,
+    pub trace_id: String,
+    pub reason_code: String,
+    pub ticket_reference_hash: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GlobalRevocationRequest {
+    pub schema: String,
+    pub principal_id: String,
+    pub preview_id: String,
+    pub idempotency_key: String,
+    pub selected_scopes: Vec<RevocationScope>,
+    pub principal_selection_confirmed: bool,
+    pub requested_at: String,
+    pub step_up: RevocationStepUp,
+    pub correlation: RevocationRequestCorrelation,
+    pub redaction: RevocationRedaction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RevocationTargetResult {
+    pub target_id_hash: String,
+    pub identity: ProviderIdentityRef,
+    pub scope: RevocationScope,
+    pub state: RevocationTargetState,
+    pub attempt_count: u32,
+    pub retryable: bool,
+    pub last_attempt_at: Option<String>,
+    pub next_attempt_at: Option<String>,
+    pub retry_after_seconds: Option<u64>,
+    pub completed_at: Option<String>,
+    pub result_code: Option<String>,
+    pub provider_request_id_hash: Option<String>,
+    pub residual_access_token_max_seconds: Option<u64>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RevocationFence {
+    pub applied_at: String,
+    pub not_before: String,
+    pub previous_auth_epoch: u64,
+    pub auth_epoch: u64,
+    pub effective: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RevocationAuditCorrelation {
+    pub audit_event_id: String,
+    pub correlation_id: String,
+    pub request_id: String,
+    pub trace_id: String,
+    pub actor_principal_id: String,
+    pub actor_session_id_hash: String,
+    pub idempotency_key_hash: String,
+    pub reason_code: String,
+    pub raw_emails_present: bool,
+    pub raw_tokens_present: bool,
+    pub raw_biometric_material_present: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GlobalRevocationOperation {
+    pub schema: String,
+    pub operation_id: String,
+    pub principal_id: String,
+    pub preview_id: String,
+    pub state: RevocationJobState,
+    pub selected_scopes: Vec<RevocationScope>,
+    pub created_at: String,
+    pub updated_at: String,
+    pub completed_at: Option<String>,
+    pub fence: RevocationFence,
+    pub targets: Vec<RevocationTargetResult>,
+    pub audit: RevocationAuditCorrelation,
+    pub redaction: RevocationRedaction,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,5 +352,31 @@ mod tests {
             user_verification_required: true,
             raw_biometric_material_present: true,
         }.is_safe());
+    }
+
+    #[test]
+    fn revocation_requires_phishing_resistant_aal2_webauthn() {
+        let valid = RevocationStepUp {
+            actor_principal_id: "principal-operator".into(),
+            actor_session_id_hash: "actor_session_hash_01".into(),
+            evidence_id_hash: "step_up_evidence_hash_01".into(),
+            assurance: AssuranceLevel::Aal2,
+            auth_methods: vec![AuthMethod::Webauthn],
+            phishing_resistant: true,
+            verified_at: "2026-08-11T15:00:00Z".into(),
+            fresh_until: "2026-08-11T15:05:00Z".into(),
+        };
+        assert!(valid.is_sufficient());
+
+        let mut insufficient = valid.clone();
+        insufficient.assurance = AssuranceLevel::Aal1;
+        assert!(!insufficient.is_sufficient());
+    }
+
+    #[test]
+    fn partial_revocation_is_an_honest_terminal_state() {
+        assert!(RevocationJobState::Partial.is_terminal());
+        assert!(!RevocationJobState::Running.is_terminal());
+        assert_eq!(RevocationScope::InteractiveSessions.as_str(), "interactive_sessions");
     }
 }
