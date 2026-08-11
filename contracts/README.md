@@ -22,18 +22,21 @@ Shared Auth directory grants additionally require:
 
 Shared Auth global revocation additionally requires:
 
-1. immutable principal IDs; email is a transient operator search input and becomes a keyed
+1. a service-authenticated exchange whose subject/access tokens are write-only, never fixture or
+   log material, and bound to the exact `shared-auth-web-server` audience and singular global
+   revocation scope;
+2. immutable principal IDs; email is a transient operator search input and becomes a keyed
    digest before it enters the canonical contract;
-2. explicit ambiguity handling and a short-lived server-bound principal-selection handoff;
-3. provider tenant plus internal opaque identity handles, never raw provider credentials;
-4. preview-before-execute blast-radius reporting with nullable unknown counts, explicit inventory
+3. explicit ambiguity handling and a short-lived server-bound principal-selection handoff;
+4. provider tenant plus internal opaque identity handles, never raw provider credentials;
+5. preview-before-execute blast-radius reporting with nullable unknown counts, explicit inventory
    status, exact unknown-field names, and explicit revocation scopes;
-5. fresh phishing-resistant AAL2-or-higher WebAuthn step-up represented to the committing client
+6. fresh phishing-resistant AAL2-or-higher WebAuthn step-up represented to the committing client
    only by a short-lived, one-use server-issued commit-authorization handle;
-6. an auth-epoch/not-before fence committed before provider fan-out;
-7. idempotent durable jobs with honest partial state and per-target bounded retry metadata,
+7. an auth-epoch/not-before fence committed before provider fan-out;
+8. idempotent durable jobs with honest partial state and per-target bounded retry metadata,
    present only for scheduled retries and absent from terminal target results;
-8. redacted audit correlation with no raw tokens, email addresses, session IDs, provider
+9. redacted audit correlation with no raw tokens, email addresses, session IDs, provider
    response bodies, or biometric material.
 
 Changes require a versioned schema path and compatibility notes. Do not mutate v1 semantics

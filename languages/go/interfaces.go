@@ -237,6 +237,42 @@ type GlobalRevocationCommitAuthorization struct {
     Redaction RevocationRedaction `json:"redaction"`
 }
 
+type AdminTokenExchangeRedaction struct {
+    SubjectTokenLogged bool `json:"subjectTokenLogged"`
+    SubjectTokenPersisted bool `json:"subjectTokenPersisted"`
+    AccessTokenLogged bool `json:"accessTokenLogged"`
+    AccessTokenPersisted bool `json:"accessTokenPersisted"`
+    TokensReturnedInDiagnostics bool `json:"tokensReturnedInDiagnostics"`
+    RawEmailsPresent bool `json:"rawEmailsPresent"`
+    RawBiometricMaterialPresent bool `json:"rawBiometricMaterialPresent"`
+}
+
+type AdminRevocationTokenExchangeRequest struct {
+    Schema string `json:"schema"`
+    RequestID string `json:"requestId"`
+    SubjectToken string `json:"subjectToken"`
+    SubjectTokenType string `json:"subjectTokenType"`
+    Audience string `json:"audience"`
+    RequestedScope string `json:"requestedScope"`
+    RequestedAt string `json:"requestedAt"`
+    Redaction AdminTokenExchangeRedaction `json:"redaction"`
+}
+
+type AdminRevocationTokenExchangeResult struct {
+    Schema string `json:"schema"`
+    RequestID string `json:"requestId"`
+    AccessToken string `json:"accessToken"`
+    IssuedTokenType string `json:"issuedTokenType"`
+    TokenType string `json:"tokenType"`
+    ExpiresInSeconds uint32 `json:"expiresInSeconds"`
+    Audience string `json:"audience"`
+    AuthorizedParty string `json:"authorizedParty"`
+    Scope string `json:"scope"`
+    IssuedAt string `json:"issuedAt"`
+    ExpiresAt string `json:"expiresAt"`
+    Redaction AdminTokenExchangeRedaction `json:"redaction"`
+}
+
 type RevocationTargetResult struct {
     TargetIDHash string `json:"targetIdHash"`
     Identity ProviderIdentityRef `json:"identity"`

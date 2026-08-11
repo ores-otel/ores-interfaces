@@ -213,6 +213,42 @@ class GlobalRevocationCommitAuthorization:
     redaction: RevocationRedaction
 
 @dataclass(frozen=True, slots=True)
+class AdminTokenExchangeRedaction:
+    subject_token_logged: bool
+    subject_token_persisted: bool
+    access_token_logged: bool
+    access_token_persisted: bool
+    tokens_returned_in_diagnostics: bool
+    raw_emails_present: bool
+    raw_biometric_material_present: bool
+
+@dataclass(frozen=True, slots=True)
+class AdminRevocationTokenExchangeRequest:
+    schema: str
+    request_id: str
+    subject_token: str
+    subject_token_type: str
+    audience: str
+    requested_scope: str
+    requested_at: str
+    redaction: AdminTokenExchangeRedaction
+
+@dataclass(frozen=True, slots=True)
+class AdminRevocationTokenExchangeResult:
+    schema: str
+    request_id: str
+    access_token: str
+    issued_token_type: str
+    token_type: str
+    expires_in_seconds: int
+    audience: str
+    authorized_party: str
+    scope: str
+    issued_at: str
+    expires_at: str
+    redaction: AdminTokenExchangeRedaction
+
+@dataclass(frozen=True, slots=True)
 class RevocationTargetResult:
     target_id_hash: str
     identity: ProviderIdentityRef

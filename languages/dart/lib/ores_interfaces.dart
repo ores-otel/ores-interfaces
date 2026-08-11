@@ -121,6 +121,18 @@ final class GlobalRevocationCommitAuthorization {
   const GlobalRevocationCommitAuthorization({required this.schema, required this.commitAuthorizationId, required this.previewId, required this.principalId, required this.selectedScopes, required this.previewCreatedByPrincipalIdHash, required this.commitAuthorizedByPrincipalIdHash, required this.commitAuthorizedBySessionIdHash, required this.dualControlRequired, required this.dualControlSatisfied, required this.verifiedStepUp, required this.issuedAt, required this.expiresAt, required this.redaction});
   final String schema; final String commitAuthorizationId; final String previewId; final String principalId; final List<RevocationScope> selectedScopes; final String previewCreatedByPrincipalIdHash; final String commitAuthorizedByPrincipalIdHash; final String commitAuthorizedBySessionIdHash; final bool dualControlRequired; final bool dualControlSatisfied; final RevocationStepUp verifiedStepUp; final String issuedAt; final String expiresAt; final RevocationRedaction redaction;
 }
+final class AdminTokenExchangeRedaction {
+  const AdminTokenExchangeRedaction({required this.subjectTokenLogged, required this.subjectTokenPersisted, required this.accessTokenLogged, required this.accessTokenPersisted, required this.tokensReturnedInDiagnostics, required this.rawEmailsPresent, required this.rawBiometricMaterialPresent});
+  final bool subjectTokenLogged; final bool subjectTokenPersisted; final bool accessTokenLogged; final bool accessTokenPersisted; final bool tokensReturnedInDiagnostics; final bool rawEmailsPresent; final bool rawBiometricMaterialPresent;
+}
+final class AdminRevocationTokenExchangeRequest {
+  const AdminRevocationTokenExchangeRequest({required this.schema, required this.requestId, required this.subjectToken, required this.subjectTokenType, required this.audience, required this.requestedScope, required this.requestedAt, required this.redaction});
+  final String schema; final String requestId; final String subjectToken; final String subjectTokenType; final String audience; final String requestedScope; final String requestedAt; final AdminTokenExchangeRedaction redaction;
+}
+final class AdminRevocationTokenExchangeResult {
+  const AdminRevocationTokenExchangeResult({required this.schema, required this.requestId, required this.accessToken, required this.issuedTokenType, required this.tokenType, required this.expiresInSeconds, required this.audience, required this.authorizedParty, required this.scope, required this.issuedAt, required this.expiresAt, required this.redaction});
+  final String schema; final String requestId; final String accessToken; final String issuedTokenType; final String tokenType; final int expiresInSeconds; final String audience; final String authorizedParty; final String scope; final String issuedAt; final String expiresAt; final AdminTokenExchangeRedaction redaction;
+}
 final class RevocationTargetResult {
   const RevocationTargetResult({required this.targetIdHash, required this.identity, required this.scope, required this.state, required this.attemptCount, required this.retryable, this.lastAttemptAt, this.nextAttemptAt, this.retryAfterSeconds, this.completedAt, this.resultCode, this.providerRequestIdHash, required this.residualAccessTokenMaxSeconds});
   final String targetIdHash; final ProviderIdentityRef identity; final RevocationScope scope; final RevocationTargetState state; final int attemptCount; final bool retryable; final String? lastAttemptAt; final String? nextAttemptAt; final int? retryAfterSeconds; final String? completedAt; final String? resultCode; final String? providerRequestIdHash; final int? residualAccessTokenMaxSeconds;

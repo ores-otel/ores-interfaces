@@ -81,6 +81,15 @@ public struct GlobalRevocationRequest: Codable, Sendable {
 public struct GlobalRevocationCommitAuthorization: Codable, Sendable {
   public let schema: String; public let commitAuthorizationId: String; public let previewId: String; public let principalId: String; public let selectedScopes: [RevocationScope]; public let previewCreatedByPrincipalIdHash: String; public let commitAuthorizedByPrincipalIdHash: String; public let commitAuthorizedBySessionIdHash: String; public let dualControlRequired: Bool; public let dualControlSatisfied: Bool; public let verifiedStepUp: RevocationStepUp; public let issuedAt: String; public let expiresAt: String; public let redaction: RevocationRedaction
 }
+public struct AdminTokenExchangeRedaction: Codable, Sendable {
+  public let subjectTokenLogged: Bool; public let subjectTokenPersisted: Bool; public let accessTokenLogged: Bool; public let accessTokenPersisted: Bool; public let tokensReturnedInDiagnostics: Bool; public let rawEmailsPresent: Bool; public let rawBiometricMaterialPresent: Bool
+}
+public struct AdminRevocationTokenExchangeRequest: Codable, Sendable {
+  public let schema: String; public let requestId: String; public let subjectToken: String; public let subjectTokenType: String; public let audience: String; public let requestedScope: String; public let requestedAt: String; public let redaction: AdminTokenExchangeRedaction
+}
+public struct AdminRevocationTokenExchangeResult: Codable, Sendable {
+  public let schema: String; public let requestId: String; public let accessToken: String; public let issuedTokenType: String; public let tokenType: String; public let expiresInSeconds: UInt32; public let audience: String; public let authorizedParty: String; public let scope: String; public let issuedAt: String; public let expiresAt: String; public let redaction: AdminTokenExchangeRedaction
+}
 public struct RevocationTargetResult: Codable, Sendable {
   public let targetIdHash: String; public let identity: ProviderIdentityRef; public let scope: RevocationScope; public let state: RevocationTargetState; public let attemptCount: UInt32; public let retryable: Bool; public let lastAttemptAt: String?; public let nextAttemptAt: String?; public let retryAfterSeconds: UInt64?; public let completedAt: String?; public let resultCode: String?; public let providerRequestIdHash: String?; public let residualAccessTokenMaxSeconds: UInt64?
 }

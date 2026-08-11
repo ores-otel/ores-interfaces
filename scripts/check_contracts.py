@@ -47,6 +47,8 @@ REVOCATION_CONTRACTS = {
     "PrincipalSelectionResult",
     "GlobalRevocationPreviewRequest",
     "GlobalRevocationCommitAuthorization",
+    "AdminRevocationTokenExchangeRequest",
+    "AdminRevocationTokenExchangeResult",
     "GlobalRevocationPreview",
     "GlobalRevocationRequest",
     "GlobalRevocationOperation",
@@ -66,6 +68,8 @@ ADMIN_CONTRACTS = (
     "PrincipalSelectionResult",
     "GlobalRevocationPreviewRequest",
     "GlobalRevocationCommitAuthorization",
+    "AdminRevocationTokenExchangeRequest",
+    "AdminRevocationTokenExchangeResult",
     "GlobalRevocationPreview",
     "GlobalRevocationRequest",
     "GlobalRevocationOperation",
@@ -145,6 +149,9 @@ REVOCATION_TYPES = {
     "PrincipalSelectionResult",
     "GlobalRevocationPreviewRequest",
     "GlobalRevocationCommitAuthorization",
+    "AdminTokenExchangeRedaction",
+    "AdminRevocationTokenExchangeRequest",
+    "AdminRevocationTokenExchangeResult",
     "InventoryStatus",
     "RevocationBlastRadius",
     "RevocationPreviewTarget",
@@ -172,6 +179,15 @@ REVOCATION_FIELDS = {
     "previewCreatedByPrincipalIdHash",
     "commitAuthorizedByPrincipalIdHash",
     "commitAuthorizedBySessionIdHash",
+    "subjectToken",
+    "subjectTokenType",
+    "requestedScope",
+    "accessToken",
+    "issuedTokenType",
+    "tokenType",
+    "expiresInSeconds",
+    "authorizedParty",
+    "tokensReturnedInDiagnostics",
     "requiresExplicitPrincipalSelection",
     "selectedScopes",
     "blastRadius",
@@ -566,6 +582,30 @@ def validate_admin_contract() -> None:
         "#/$defs/RevocationStepUp"
     )
 
+    exchange_request = definitions["AdminRevocationTokenExchangeRequest"]
+    assert exchange_request["properties"]["subjectToken"]["writeOnly"] is True
+    assert exchange_request["properties"]["audience"]["const"] == (
+        "shared-auth-web-server"
+    )
+    assert exchange_request["properties"]["requestedScope"]["const"] == (
+        "shared-auth:sessions:revoke:global"
+    )
+    assert not ({"azp", "authorizedParty"} & set(exchange_request["properties"]))
+
+    exchange_result = definitions["AdminRevocationTokenExchangeResult"]
+    assert exchange_result["properties"]["accessToken"]["writeOnly"] is True
+    assert exchange_result["properties"]["tokenType"]["const"] == "Bearer"
+    assert exchange_result["properties"]["audience"]["const"] == (
+        "shared-auth-web-server"
+    )
+    assert exchange_result["properties"]["authorizedParty"]["const"] == (
+        "shared-auth-web-server"
+    )
+    assert exchange_result["properties"]["scope"]["const"] == (
+        "shared-auth:sessions:revoke:global"
+    )
+    assert exchange_result["properties"]["expiresInSeconds"]["maximum"] == 300
+
     operation = definitions["GlobalRevocationOperation"]
     assert {"principalId", "state", "fence", "targets", "audit"} <= set(operation["required"])
     fence = definitions["RevocationFence"]
@@ -684,6 +724,80 @@ def validate_admin_contract() -> None:
             f"duplicate canonical positive fixture for {contract}: {path}",
         )
         canonical_documents[contract] = (path.relative_to(ROOT), document)
+
+    token_redaction = {
+        "subjectTokenLogged": False,
+        "subjectTokenPersisted": False,
+        "accessTokenLogged": False,
+        "accessTokenPersisted": False,
+        "tokensReturnedInDiagnostics": False,
+        "rawEmailsPresent": False,
+        "rawBiometricMaterialPresent": False,
+    }
+    synthetic_exchange_documents = {
+        "AdminRevocationTokenExchangeRequest": {
+            "contract": "AdminRevocationTokenExchangeRequest",
+            "payload": {
+                "schema": "ores.shared-auth-admin-revocation-token-exchange-request/v1",
+                "requestId": "request-token-exchange-01",
+                "subjectToken": "x" * 32,
+                "subjectTokenType": "urn:ietf:params:oauth:token-type:access_token",
+                "audience": "shared-auth-web-server",
+                "requestedScope": "shared-auth:sessions:revoke:global",
+                "requestedAt": "2026-08-11T15:01:00Z",
+                "redaction": token_redaction,
+            },
+        },
+        "AdminRevocationTokenExchangeResult": {
+            "contract": "AdminRevocationTokenExchangeResult",
+            "payload": {
+                "schema": "ores.shared-auth-admin-revocation-token-exchange-result/v1",
+                "requestId": "request-token-exchange-01",
+                "accessToken": "y" * 32,
+                "issuedTokenType": "urn:ietf:params:oauth:token-type:access_token",
+                "tokenType": "Bearer",
+                "expiresInSeconds": 120,
+                "audience": "shared-auth-web-server",
+                "authorizedParty": "shared-auth-web-server",
+                "scope": "shared-auth:sessions:revoke:global",
+                "issuedAt": "2026-08-11T15:01:01Z",
+                "expiresAt": "2026-08-11T15:03:01Z",
+                "redaction": token_redaction,
+            },
+        },
+    }
+    for contract, document in synthetic_exchange_documents.items():
+        require_valid(validator, document, f"in-memory {contract}")
+        canonical_documents[contract] = (f"in-memory {contract}", document)
+
+    unsafe_exchange_request = deepcopy(
+        synthetic_exchange_documents["AdminRevocationTokenExchangeRequest"]
+    )
+    unsafe_exchange_request["payload"]["audience"] = "some-other-service"
+    require_invalid(validator, unsafe_exchange_request, "wrong exchange audience")
+    unsafe_exchange_request = deepcopy(
+        synthetic_exchange_documents["AdminRevocationTokenExchangeRequest"]
+    )
+    unsafe_exchange_request["payload"]["azp"] = "caller-selected"
+    require_invalid(validator, unsafe_exchange_request, "caller-selected exchange azp")
+    unsafe_exchange_result = deepcopy(
+        synthetic_exchange_documents["AdminRevocationTokenExchangeResult"]
+    )
+    unsafe_exchange_result["payload"]["expiresInSeconds"] = 301
+    require_invalid(validator, unsafe_exchange_result, "overlong exchange token lifetime")
+    exchange_result_example = synthetic_exchange_documents[
+        "AdminRevocationTokenExchangeResult"
+    ]["payload"]
+    assert timestamp(exchange_result_example["issuedAt"]) < timestamp(
+        exchange_result_example["expiresAt"]
+    )
+
+    for path in sorted(ADMIN_EXAMPLES.rglob("*.json")) + sorted(
+        (ADMIN_SCHEMA.parent / "fixtures").rglob("*.json")
+    ):
+        source = path.read_text(encoding="utf-8")
+        assert '"subjectToken"' not in source, f"subject token field in fixture {path}"
+        assert '"accessToken"' not in source, f"access token field in fixture {path}"
 
     for name, definition in EXAMPLE_DEFINITIONS.items():
         if definition not in REVOCATION_CONTRACTS or definition in canonical_documents:

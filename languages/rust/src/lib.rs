@@ -382,6 +382,45 @@ pub struct GlobalRevocationCommitAuthorization {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdminTokenExchangeRedaction {
+    pub subject_token_logged: bool,
+    pub subject_token_persisted: bool,
+    pub access_token_logged: bool,
+    pub access_token_persisted: bool,
+    pub tokens_returned_in_diagnostics: bool,
+    pub raw_emails_present: bool,
+    pub raw_biometric_material_present: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdminRevocationTokenExchangeRequest {
+    pub schema: String,
+    pub request_id: String,
+    pub subject_token: String,
+    pub subject_token_type: String,
+    pub audience: String,
+    pub requested_scope: String,
+    pub requested_at: String,
+    pub redaction: AdminTokenExchangeRedaction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdminRevocationTokenExchangeResult {
+    pub schema: String,
+    pub request_id: String,
+    pub access_token: String,
+    pub issued_token_type: String,
+    pub token_type: String,
+    pub expires_in_seconds: u32,
+    pub audience: String,
+    pub authorized_party: String,
+    pub scope: String,
+    pub issued_at: String,
+    pub expires_at: String,
+    pub redaction: AdminTokenExchangeRedaction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RevocationTargetResult {
     pub target_id_hash: String,
     pub identity: ProviderIdentityRef,
