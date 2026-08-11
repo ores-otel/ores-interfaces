@@ -20,11 +20,12 @@ tag_format = "v{version}"
 exclude = [".github/**", ".zed/**", ".zpkg.lock", "zed_modules/**", "**/target/**", "**/node_modules/**", "**/__pycache__/**", "**/.dart_tool/**", "**/build/**", "**/*.class"]
 smoke_test = "python3 scripts/check_contracts.py"
 
-# With explicit targets, Zed publishes only those targets. The whole-repository
-# target retains the canonical package coordinate consumed by dependants.
+# Zed v0.1.0 publishes only explicit targets for a polyglot source package and
+# reserves the source package name. This aggregate is therefore published as
+# ores-otel/ores-interfaces-repository and is the dependency coordinate used
+# by whole-repository consumers.
 [targets.repository]
 dir = "."
-name = "ores-interfaces"
 adapter = "none"
 
 [targets.contracts]
