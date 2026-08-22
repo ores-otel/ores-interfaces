@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "SHA-256 attestations for reviewed Java binding paths"
+condition = "AND"
+regexTarget = "match"
+paths = ['''^\.ores-template-manifest\.json$''']
+regexes = [
+  '''"languages/java/src/(?:main|test)/java/com/oresoftware/interfaces/AuthContracts(?:Test)?\.java": "[a-f0-9]{64}"''',
+]

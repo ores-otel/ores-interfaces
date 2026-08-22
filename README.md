@@ -14,6 +14,8 @@ redaction semantics.
 - `contracts/ores-platform/v1` — portfolio-wide JSON Schema 2020-12 contracts.
 - `contracts/shared-auth-admin/v1` — organization dropdown, project scope, users, sessions,
   role bindings, capability truth, and dashboard redaction contracts.
+- `contracts/shared-auth/v1` — canonical organizations/projects/users/memberships/roles,
+  sessions/factors/audit projections, plus authorized idempotent cross-org revocation.
 - `languages/rust` — zero-dependency Rust data types.
 - `languages/typescript` — runtime constants plus TypeScript declarations.
 - `languages/go` — Go structs and enums.
@@ -36,6 +38,19 @@ The dashboard contract is intentionally read-only and organization-scoped:
 - face/fingerprint/thumbprint language means local platform-authenticator user verification
   behind WebAuthn, not collection or retention of images or templates;
 - non-implemented capabilities must advertise `productionEnabled: false`.
+
+## Cross-organization session revocation
+
+`RevokeSessionsByEmailRequest` is a command to the trusted Shared Auth server, not a direct
+database operation. The server must normalize the ASCII address, derive a keyed HMAC for
+lookup, and discard the address before logging or persistence. For every candidate
+organization, it verifies the actor's `sessions.revoke` permission independently. Results
+list authorized organizations only and expose a count—not identities—for unprocessed scope.
+
+Idempotency is scoped to the verified actor plus `idempotencyKey`. Reusing that key with the
+same canonical request digest replays the sanitized result; using it with a different digest
+is a conflict. Partial failure is per organization, and each authorized attempt emits an
+`AuditEvent` through the injected `ores.otel.log` adapter.
 
 ## Authentication boundaries
 
