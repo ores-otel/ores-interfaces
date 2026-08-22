@@ -20,3 +20,29 @@ func TestFactorRejectsForbiddenMaterialFlags(t *testing.T) {
 		t.Fatal("private key material flag accepted")
 	}
 }
+func TestGlobalRevocationRequiresPhishingResistantAAL2WebAuthn(t *testing.T) {
+	stepUp := RevocationStepUp{Assurance: Aal2, AuthMethods: []AuthMethod{AuthMethodWebAuthn}, PhishingResistant: true}
+	if !stepUp.Sufficient() {
+		t.Fatal("valid revocation step-up rejected")
+	}
+	stepUp.Assurance = Aal1
+	if stepUp.Sufficient() {
+		t.Fatal("AAL1 revocation step-up accepted")
+	}
+}
+func TestPartialRevocationIsTerminal(t *testing.T) {
+	if !RevocationPartial.Terminal() || RevocationRunning.Terminal() {
+		t.Fatal("revocation terminal-state drift")
+	}
+	if RevocationInteractiveSessions != "interactive_sessions" {
+		t.Fatal("revocation scope drift")
+	}
+}
+func TestDirectoryAdminGrantValuesAreExact(t *testing.T) {
+	if DirectoryAdmin != "directory_admin" {
+		t.Fatal("directory admin role drift")
+	}
+	if DirectoryRevocationsExecute != "directory.revocations.execute" {
+		t.Fatal("directory admin scope drift")
+	}
+}
