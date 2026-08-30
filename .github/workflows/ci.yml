@@ -33,6 +33,8 @@ jobs:
       - name: Validate contracts and regression fixtures
         run: |
           "$RUNNER_TEMP/contracts-venv/bin/python" scripts/check_contracts.py
+      - name: Check RPC contract fixtures (not compiler certification)
+        run: node --test scripts/rpc-contract.test.mjs
 
   native:
     runs-on: ubuntu-24.04
