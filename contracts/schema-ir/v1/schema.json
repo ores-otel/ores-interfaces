@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ores:schema-ir:v1",
+  "title": "Ores schema compiler intermediate representation v1",
+  "description": "Portable record shapes plus explicit relational mappings. Semantic key/reference validation is additionally required before emission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "models"],
+  "properties": {
+    "version": {"const": "ores.schema-ir.v1"},
+    "models": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"$ref": "#/$defs/model"}}
+  },
+  "$defs": {
+    "modelName": {"type": "string", "pattern": "^[A-Z][A-Za-z0-9]{0,62}(?![\\s\\S])"},
+    "fieldName": {"type": "string", "pattern": "^[a-z][A-Za-z0-9_]{0,62}(?![\\s\\S])"},
+    "sqlName": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,62}(?![\\s\\S])"},
+    "fieldList": {
+      "type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/fieldName"}
+    },
+    "field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "type", "required", "nullable"],
+      "properties": {
+        "name": {"$ref": "#/$defs/fieldName"},
+        "type": {"enum": ["string", "boolean", "int32", "uuid"]},
+        "required": {"type": "boolean"},
+        "nullable": {"type": "boolean"},
+        "minLength": {"type": "integer", "minimum": 0, "maximum": 1048576},
+        "maxLength": {"type": "integer", "minimum": 0, "maximum": 1048576}
+      },
+      "allOf": [{
+        "if": {"properties": {"type": {"const": "string"}}},
+        "else": {"not": {"anyOf": [{"required": ["minLength"]}, {"required": ["maxLength"]}]}}
+      }]
+    },
+    "column": {
+      "type": "object", "additionalProperties": false, "required": ["field", "name"],
+      "properties": {"field": {"$ref": "#/$defs/fieldName"}, "name": {"$ref": "#/$defs/sqlName"}}
+    },
+    "reference": {
+      "type": "object", "additionalProperties": false, "required": ["model", "fields"],
+      "properties": {"model": {"$ref": "#/$defs/modelName"}, "fields": {"$ref": "#/$defs/fieldList"}}
+    },
+    "foreignKey": {
+      "type": "object", "additionalProperties": false, "required": ["fields", "references", "onDelete"],
+      "properties": {
+        "fields": {"$ref": "#/$defs/fieldList"},
+        "references": {"$ref": "#/$defs/reference"},
+        "onDelete": {"enum": ["restrict", "cascade", "setNull"]}
+      }
+    },
+    "storage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema", "table", "columns", "primaryKey", "uniqueKeys", "foreignKeys"],
+      "properties": {
+        "schema": {"$ref": "#/$defs/sqlName"},
+        "table": {"$ref": "#/$defs/sqlName"},
+        "columns": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"$ref": "#/$defs/column"}},
+        "primaryKey": {"$ref": "#/$defs/fieldList"},
+        "uniqueKeys": {"type": "array", "maxItems": 64, "uniqueItems": true, "items": {"$ref": "#/$defs/fieldList"}},
+        "foreignKeys": {"type": "array", "maxItems": 64, "uniqueItems": true, "items": {"$ref": "#/$defs/foreignKey"}}
+      }
+    },
+    "model": {
+      "type": "object", "additionalProperties": false, "required": ["name", "fields"],
+      "properties": {
+        "name": {"$ref": "#/$defs/modelName"},
+        "fields": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"$ref": "#/$defs/field"}},
+        "storage": {"$ref": "#/$defs/storage"}
+      }
+    }
+  }
+}
