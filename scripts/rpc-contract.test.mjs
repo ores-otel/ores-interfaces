@@ -7,6 +7,7 @@ const root = new URL('../contracts/rpc-retry/v1/', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
 const source = read('main.tsp');
 const proto = read('expected/retry.proto');
+const generatedProto = read('generated/protobuf/ores/rpc/v1.proto');
 const schema = JSON.parse(read('expected/schema.json'));
 const names = ['RetryPolicy', 'RetryAttempt', 'RetryInput', 'RetryDecision'];
 const clean = (text) => text.replace(/\/\/[^\n]*/g, '');
@@ -54,11 +55,34 @@ function verify(name, tsp = source, pb = proto, json = schema) {
 }
 
 for (const name of names) test(`${name}: explicit tags, presence, types and bounds agree`, () => verify(name));
+for (const name of names) test(`${name}: emitted Protobuf agrees with reviewed projection`, () => {
+  verify(name, source, generatedProto, schema);
+});
+for (const name of names) test(`${name}: emitted JSON Schema agrees with reviewed projection`, () => {
+  const fieldsFromSource = fields(source, 'model', name);
+  const generated = JSON.parse(read(`generated/json-schema/${name}.json`));
+  const reviewed = schema.$defs[name];
+  assert.equal(generated.type, 'object');
+  assert.deepEqual(generated.unevaluatedProperties, { not: {} });
+  assert.deepEqual(Object.keys(generated.properties), Object.keys(reviewed.properties));
+  assert.deepEqual(generated.required, reviewed.required);
+  for (const field of fieldsFromSource) {
+    const emitted = generated.properties[field.name];
+    const expected = reviewed.properties[field.name];
+    if (field.type === 'uint32' || field.type === 'bool') {
+      assert.deepEqual(emitted, expected);
+    } else {
+      assert.deepEqual(emitted, { $ref: `${field.type}.json` });
+      assert.deepEqual(expected, { $ref: `#/$defs/${field.type}` });
+    }
+  }
+});
 test('fixture model inventory is closed and the input root is explicit', () => {
   assert.deepEqual(Object.keys(schema.$defs), names);
   assert.equal(schema.$ref, '#/$defs/RetryInput');
   assert.deepEqual([...clean(source).matchAll(/\bmodel (\w+)\s*\{/g)].map((m) => m[1]), names);
   assert.deepEqual([...clean(proto).matchAll(/\bmessage (\w+)\s*\{/g)].map((m) => m[1]), names);
+  assert.deepEqual([...clean(generatedProto).matchAll(/\bmessage (\w+)\s*\{/g)].map((m) => m[1]), names);
   assert.match(proto, /package ores\.rpc\.v1;/);
 });
 test('presence loss is detected', () => {
@@ -74,8 +98,8 @@ test('bounds drift is detected', () => {
 });
 test('emitter destinations cannot overwrite reviewed expected fixtures', () => {
   const config = read('tspconfig.yaml');
-  assert.match(config, /generated\/protobuf/);
-  assert.match(config, /generated\/json-schema/);
+  assert.match(config, /\{output-dir\}\/protobuf/);
+  assert.match(config, /\{output-dir\}\/json-schema/);
   assert.doesNotMatch(config, /emitter-output-dir:.*expected/);
   assert.match(schema.$comment, /not compiler output/);
 });

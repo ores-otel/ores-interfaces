@@ -8,12 +8,17 @@ contract, define a database schema, or expose a remotely callable retry endpoint
 
 ## Sources and projections
 
-`main.tsp` is the candidate wire-authoring input. Explicit Protobuf field numbers
+`main.tsp` is the candidate wire-authoring source. Explicit Protobuf field numbers
 are compatibility identities: never renumber/reuse them; reserve removed numbers
-and names before release. `expected/retry.proto` and `expected/schema.json` are
-reviewed compatibility fixtures, **not claimed TypeSpec output**. Real emitters
-write only under `generated/`, never over `expected/` or authored persistence JSON
-Schema. This directory has no fabricated generator/package lock.
+and names before release. The exact lockfile pins TypeSpec 1.15.0, its JSON Schema
+1.15.0 and Protobuf 0.85.0 emitters, Buf 1.72.0, and Ajv 8.20.0.
+
+`generated/` contains deterministic compiler output. CI compiles twice into
+separate temporary roots, byte-compares both runs with the committed artifacts,
+and compiles identical Protobuf descriptor sets. `expected/retry.proto` and
+`expected/schema.json` remain independently reviewed compatibility projections:
+they are semantic vetoes, not compiler output. Emitters never write over
+`expected/` or authored persistence JSON Schema.
 
 The JSON fixture describes **normalized SDK objects**, not raw ProtoJSON. A codec
 adapter must materialize implicit Proto3 scalar defaults before validation and
@@ -47,22 +52,32 @@ Decision reason numbers: 1 retry; 2 invalid input; 3 cancelled; 4 unsafe replay;
 
 ## Verification and release gates
 
-Run `node --test scripts/rpc-contract.test.mjs` from the repository root. These are
-finite fixture/drift smoke tests, **not a substitute for either compiler**, full
-JSON Schema validation, or cross-language network interoperability.
+Run from the repository root:
+
+```bash
+npm ci --ignore-scripts --prefix contracts/rpc-retry/v1
+npm run compile --prefix contracts/rpc-retry/v1
+node --test scripts/rpc-contract.test.mjs scripts/rpc-compiler-contract.test.mjs
+```
+
+The checks compile TypeSpec twice, compare generated Protobuf and JSON Schema with
+both the second run and committed artifacts, compare their semantic projections
+with the reviewed fixtures, compile deterministic descriptor sets, run Buf
+STANDARD lint, and validate reviewed positive/negative instances with Ajv 2020.
+They are still not a generated SDK or cross-language network interoperability test.
+
+OpenAPI is intentionally not emitted by this slice: these are DTOs for a local
+retry planner, not an HTTP service. An OpenAPI document belongs with a real HTTP
+operation rather than an empty or invented endpoint surface.
 
 Before promoting this profile:
 
-1. Resolve TypeSpec compiler, Protobuf/JSON Schema emitters, Buf and language
-   generators through reviewed Zed package/toolchain pins and real lock digests.
-2. Compile twice into separate disposable directories; compare deterministic
-   output and normalized semantics against these fixtures. Fail on any warning,
-   lossy mapping, missing presence, or unexpected output. The optional-scalar
-   emitter must support Proto3 optional fields.
-3. Compile a descriptor set; run Buf lint and breaking checks against the prior
-   release (or record an explicit initial baseline). Generate Rust, Dart and TS
+1. Promote the reviewed npm lock into the Zed package/toolchain path and prove an
+   install from that package source without changing any resolved bytes.
+2. Record an explicit initial Buf baseline; subsequent releases must run breaking
+   checks against it. Generate Rust, Dart and TS
    clients; run boundary, malformed-input and codec round-trip tests.
-4. Run the same retry fixture corpus and host-adapter tests in native Rust,
+3. Run the same retry fixture corpus and host-adapter tests in native Rust,
    Dart VM, Dart web and browser JS before releasing a coordinated SDK package.
 
 ## Persistence stays separate
