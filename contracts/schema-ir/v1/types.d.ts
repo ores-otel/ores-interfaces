@@ -11,9 +11,12 @@ export type SchemaField = FieldBase & (
   | { readonly type: "int32"; readonly minimum?: number; readonly maximum?: number }
   | { readonly type: "uuid" | "boolean" }
 );
+export type ForeignKeyDeleteAction = "noAction" | "restrict" | "cascade" | "setNull";
 export interface ForeignKey {
   readonly fields: readonly string[];
   readonly references: { readonly entity: string; readonly fields: readonly string[] };
+  /** Omission preserves the v1 noAction default. New declarations should set this explicitly. */
+  readonly onDelete?: ForeignKeyDeleteAction;
 }
 export interface SchemaEntity {
   readonly name: string;
