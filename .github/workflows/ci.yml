@@ -21,6 +21,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: contracts/rpc-retry/v1/package-lock.json
       - name: Install pinned contract validator
         env:
           PIP_DISABLE_PIP_VERSION_CHECK: "1"
@@ -33,6 +39,12 @@ jobs:
       - name: Validate contracts and regression fixtures
         run: |
           "$RUNNER_TEMP/contracts-venv/bin/python" scripts/check_contracts.py
+      - name: Check RPC contract fixtures (not compiler certification)
+        run: node --test scripts/rpc-contract.test.mjs
+      - name: Install pinned TypeSpec, Protobuf, and schema toolchain
+        run: npm ci --ignore-scripts --prefix contracts/rpc-retry/v1
+      - name: Compile and cross-check RPC contract artifacts
+        run: node --test scripts/rpc-compiler-contract.test.mjs
 
   native:
     runs-on: ubuntu-24.04

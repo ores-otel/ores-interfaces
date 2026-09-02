@@ -1,0 +1,14 @@
+# Regeneration must use the reviewed Zed-resolved compiler/emitter toolchain.
+# Expected fixtures are intentionally not an emitter destination.
+warn-as-error: true
+output-dir: "{project-root}/generated"
+emit:
+  - "@typespec/protobuf"
+  - "@typespec/json-schema"
+options:
+  "@typespec/protobuf":
+    emitter-output-dir: "{output-dir}/protobuf"
+  "@typespec/json-schema":
+    emitter-output-dir: "{output-dir}/json-schema"
+    file-type: json
+    seal-object-schemas: true
