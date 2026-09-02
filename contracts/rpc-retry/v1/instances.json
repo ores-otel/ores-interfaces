@@ -1,0 +1,146 @@
+{
+  "RetryInput": {
+    "valid": [
+      {
+        "policy": {
+          "max_attempts": 3,
+          "timeout_ms": 10000,
+          "initial_backoff_ms": 100,
+          "max_backoff_ms": 2000
+        },
+        "attempt": {
+          "attempts_completed": 1,
+          "elapsed_ms": 250,
+          "code": 14,
+          "cancelled": false,
+          "replay_safe": true,
+          "jitter_permille": 500
+        }
+      },
+      {
+        "policy": {
+          "max_attempts": 8,
+          "timeout_ms": 3600000,
+          "initial_backoff_ms": 1,
+          "max_backoff_ms": 60000
+        },
+        "attempt": {
+          "attempts_completed": 8,
+          "elapsed_ms": 3600000,
+          "code": 16,
+          "cancelled": true,
+          "replay_safe": false,
+          "jitter_permille": 1000,
+          "retry_after_ms": 0
+        }
+      }
+    ],
+    "invalid": [
+      {
+        "name": "missing policy",
+        "value": {
+          "attempt": {
+            "attempts_completed": 1,
+            "elapsed_ms": 0,
+            "code": 14,
+            "cancelled": false,
+            "replay_safe": true,
+            "jitter_permille": 0
+          }
+        }
+      },
+      {
+        "name": "null optional scalar",
+        "value": {
+          "policy": {
+            "max_attempts": 3,
+            "timeout_ms": 10000,
+            "initial_backoff_ms": 100,
+            "max_backoff_ms": 2000
+          },
+          "attempt": {
+            "attempts_completed": 1,
+            "elapsed_ms": 0,
+            "code": 14,
+            "cancelled": false,
+            "replay_safe": true,
+            "jitter_permille": 0,
+            "retry_after_ms": null
+          }
+        }
+      },
+      {
+        "name": "unexpected input property",
+        "value": {
+          "policy": {
+            "max_attempts": 3,
+            "timeout_ms": 10000,
+            "initial_backoff_ms": 100,
+            "max_backoff_ms": 2000
+          },
+          "attempt": {
+            "attempts_completed": 1,
+            "elapsed_ms": 0,
+            "code": 14,
+            "cancelled": false,
+            "replay_safe": true,
+            "jitter_permille": 0
+          },
+          "credential": "must-not-cross-wire-boundary"
+        }
+      },
+      {
+        "name": "attempt bound exceeded",
+        "value": {
+          "policy": {
+            "max_attempts": 9,
+            "timeout_ms": 10000,
+            "initial_backoff_ms": 100,
+            "max_backoff_ms": 2000
+          },
+          "attempt": {
+            "attempts_completed": 1,
+            "elapsed_ms": 0,
+            "code": 14,
+            "cancelled": false,
+            "replay_safe": true,
+            "jitter_permille": 0
+          }
+        }
+      }
+    ]
+  },
+  "RetryDecision": {
+    "valid": [
+      {
+        "retry": true,
+        "delay_ms": 100,
+        "reason": 1
+      },
+      {
+        "retry": false,
+        "delay_ms": 0,
+        "reason": 7
+      }
+    ],
+    "invalid": [
+      {
+        "name": "unknown reason",
+        "value": {
+          "retry": false,
+          "delay_ms": 0,
+          "reason": 8
+        }
+      },
+      {
+        "name": "unexpected decision property",
+        "value": {
+          "retry": true,
+          "delay_ms": 100,
+          "reason": 1,
+          "token": "must-not-cross-wire-boundary"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+// Reviewed compatibility fixture, NOT claimed compiler output. main.tsp owns candidate lineage.
+syntax = "proto3";
+package ores.rpc.v1;
+
+message RetryPolicy {
+  uint32 max_attempts = 1;
+  uint32 timeout_ms = 2;
+  uint32 initial_backoff_ms = 3;
+  uint32 max_backoff_ms = 4;
+}
+message RetryAttempt {
+  uint32 attempts_completed = 1;
+  uint32 elapsed_ms = 2;
+  uint32 code = 3;
+  bool cancelled = 4;
+  bool replay_safe = 5;
+  uint32 jitter_permille = 6;
+  optional uint32 retry_after_ms = 7;
+}
+message RetryInput {
+  RetryPolicy policy = 1;
+  RetryAttempt attempt = 2;
+}
+message RetryDecision {
+  bool retry = 1;
+  uint32 delay_ms = 2;
+  uint32 reason = 3;
+}
