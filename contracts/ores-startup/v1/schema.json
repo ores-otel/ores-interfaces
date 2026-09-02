@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://interfaces.oresoftware.com/ores-startup/v1/schema.json",
+  "title": "ORE responsive startup diagnostics v1",
+  "description": "Secret-free, bounded events for tracing one Flutter launch from process entry through first frame and timeout-bounded dependency phases.",
+  "$ref": "#/$defs/StartupDiagnosticEvent",
+  "$defs": {
+    "DiagnosticIdentifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+    },
+    "StartupDiagnosticEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timestamp",
+        "app_name",
+        "launch_id",
+        "event",
+        "level",
+        "redaction_version"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "app_name": {
+          "$ref": "#/$defs/DiagnosticIdentifier"
+        },
+        "launch_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]{6,32}-[a-z0-9]{1,8}$"
+        },
+        "event": {
+          "type": "string",
+          "enum": [
+            "app_launch",
+            "first_frame_rendered",
+            "lifecycle_changed",
+            "startup_started",
+            "startup_phase_started",
+            "startup_phase_slow",
+            "startup_phase_completed",
+            "startup_completed",
+            "uncaught_flutter_error",
+            "uncaught_platform_error",
+            "uncaught_zone_error"
+          ]
+        },
+        "level": {
+          "type": "string",
+          "enum": ["debug", "info", "warning", "error"]
+        },
+        "phase": {
+          "$ref": "#/$defs/DiagnosticIdentifier"
+        },
+        "dependency": {
+          "$ref": "#/$defs/DiagnosticIdentifier"
+        },
+        "outcome": {
+          "$ref": "#/$defs/DiagnosticIdentifier"
+        },
+        "elapsed_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000
+        },
+        "retry_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "error_type": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$"
+        },
+        "lifecycle_state": {
+          "type": "string",
+          "enum": ["resumed", "inactive", "hidden", "paused", "detached"]
+        },
+        "stack_trace": {
+          "type": "string",
+          "maxLength": 8192,
+          "description": "At most twelve locally redacted frames. Error messages, URLs, tokens, credentials, and user identifiers are forbidden."
+        },
+        "redaction_version": {
+          "type": "integer",
+          "const": 1
+        }
+      }
+    }
+  }
+}

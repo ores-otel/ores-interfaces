@@ -13,6 +13,7 @@ weaken tenant, audience, assurance, retention, pagination, or redaction semantic
 ## Layout
 
 - `contracts/ores-platform/v1` — portfolio-wide JSON Schema 2020-12 contracts.
+- `contracts/ores-startup/v1` — bounded, secret-free responsive-launch diagnostics.
 - `contracts/shared-auth-admin/v1` — organization dropdown, project scope, users, sessions,
   role bindings, capability truth, and dashboard redaction contracts.
 - `contracts/shared-auth/v1` — canonical organizations/projects/users/memberships/roles,

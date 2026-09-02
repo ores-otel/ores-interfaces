@@ -23,6 +23,9 @@ except ModuleNotFoundError as error:
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 VALIDATOR_LOCK = ROOT / "scripts/requirements-contracts.lock"
 PLATFORM_SCHEMA = ROOT / "contracts/ores-platform/v1/schema.json"
+STARTUP_SCHEMA = ROOT / "contracts/ores-startup/v1/schema.json"
+STARTUP_EXAMPLES = ROOT / "contracts/ores-startup/v1/examples"
+STARTUP_INVALID_FIXTURES = ROOT / "contracts/ores-startup/v1/fixtures/invalid"
 ADMIN_SCHEMA = ROOT / "contracts/shared-auth-admin/v1/schema.json"
 ADMIN_EXAMPLE = ROOT / "contracts/shared-auth-admin/v1/examples/dashboard-response.json"
 ADMIN_EXAMPLES = ROOT / "contracts/shared-auth-admin/v1/examples"
@@ -1156,6 +1159,42 @@ def validate_shared_auth_contract() -> None:
         for name in binding_manifest["requiredTypes"]:
             assert name in source, f"{binding['language']} binding missing {name}"
 
+
+def validate_startup_contract() -> None:
+    schema = load_json(STARTUP_SCHEMA)
+    assert schema["$schema"].endswith("2020-12/schema")
+    require_restrictive_objects(schema)
+    event = schema["$defs"]["StartupDiagnosticEvent"]
+    assert event["properties"]["redaction_version"]["const"] == 1
+    assert event["properties"]["stack_trace"]["maxLength"] <= 8192
+    assert {
+        "app_launch",
+        "first_frame_rendered",
+        "startup_phase_slow",
+        "startup_phase_completed",
+        "uncaught_flutter_error",
+        "uncaught_platform_error",
+        "uncaught_zone_error",
+    } <= set(event["properties"]["event"]["enum"])
+    assert not {
+        "message",
+        "url",
+        "email",
+        "token",
+        "access_token",
+        "device_id",
+    } & set(event["properties"])
+
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    valid_paths = sorted(STARTUP_EXAMPLES.glob("*.json"))
+    invalid_paths = sorted(STARTUP_INVALID_FIXTURES.glob("*.json"))
+    assert valid_paths, "startup diagnostic example set is empty"
+    assert invalid_paths, "startup diagnostic negative fixture set is empty"
+    for path in valid_paths:
+        require_valid(validator, load_json(path), path.relative_to(ROOT))
+    for path in invalid_paths:
+        require_invalid(validator, load_json(path), path.relative_to(ROOT))
+
 def main() -> int:
     document = json.loads(PLATFORM_SCHEMA.read_text(encoding="utf-8"))
     assert document["$schema"].endswith("2020-12/schema")
@@ -1166,6 +1205,7 @@ def main() -> int:
 
     validate_admin_contract()
     validate_shared_auth_contract()
+    validate_startup_contract()
 
     zpkg = (ROOT / ".zpkg.toml").read_text(encoding="utf-8")
     assert '[targets.shared-auth-contracts]' in zpkg
@@ -1190,7 +1230,8 @@ def main() -> int:
     print(
         "contracts valid: "
         f"methods={len(methods)} languages={len(present)} revocation_scopes={len(REVOCATION_SCOPES)} "
-        "admin_contract=shared-auth-admin/v1 domain_contract=shared-auth/v1"
+        "admin_contract=shared-auth-admin/v1 domain_contract=shared-auth/v1 "
+        "startup_contract=ores-startup/v1"
     )
     return 0
 
