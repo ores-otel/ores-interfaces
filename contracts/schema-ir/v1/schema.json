@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:ores:schema-ir:v1",
   "title": "Ores portable relational schema IR v1",
-  "$comment": "Structural validation only. The ores-lib-core semantic compiler must additionally validate reserved names, name uniqueness, ranges, primary-key presence/nullability, foreign-key arity/uniqueness/types, and emitted-name collisions. Unknown metadata is forbidden. No migration execution is authorized.",
+  "$comment": "Structural validation only. The ores-lib-core semantic compiler must additionally validate reserved names, name uniqueness, ranges, primary-key presence/nullability, foreign-key arity/uniqueness/types/delete policy, and emitted-name collisions. Unknown metadata is forbidden. No migration execution is authorized.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -159,6 +159,15 @@
               "$ref": "#/$defs/key"
             }
           }
+        },
+        "onDelete": {
+          "description": "Explicit PostgreSQL delete action. Omission is the backwards-compatible noAction default; new declarations should set this property.",
+          "enum": [
+            "noAction",
+            "restrict",
+            "cascade",
+            "setNull"
+          ]
         }
       }
     },
