@@ -36,7 +36,11 @@
       }
     },
     "server": {
-      "models": [],
+      "models": [
+        "TrustedActor",
+        "ServerRequestContext",
+        "InternalCommand"
+      ],
       "authorities": {
         "jsonSchema": "validation/authorities/server/contracts.json",
         "typespec": "validation/authorities/server/contracts.tsp"
