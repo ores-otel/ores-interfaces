@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "ores.schema-ir.v1",
+  "databaseSchema": "schema_example",
+  "entities": [
+    {
+      "name": "Organization",
+      "table": "organizations",
+      "fields": [
+        {
+          "name": "id",
+          "column": "id",
+          "type": "uuid",
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "slug",
+          "column": "slug",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "minLength": 1,
+          "maxLength": 64
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        [
+          "slug"
+        ]
+      ]
+    },
+    {
+      "name": "Member",
+      "table": "members",
+      "fields": [
+        {
+          "name": "id",
+          "column": "id",
+          "type": "uuid",
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "organizationId",
+          "column": "organization_id",
+          "type": "uuid",
+          "required": true,
+          "nullable": false
+        },
+        {
+          "name": "displayName",
+          "column": "display_name",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "minLength": 1,
+          "maxLength": 80
+        },
+        {
+          "name": "nickname",
+          "column": "nickname",
+          "type": "string",
+          "required": false,
+          "nullable": true,
+          "maxLength": 80
+        },
+        {
+          "name": "score",
+          "column": "score",
+          "type": "int32",
+          "required": true,
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 150
+        },
+        {
+          "name": "enabled",
+          "column": "enabled",
+          "type": "boolean",
+          "required": true,
+          "nullable": false
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "uniqueKeys": [
+        [
+          "organizationId",
+          "displayName"
+        ]
+      ],
+      "indexes": [
+        [
+          "organizationId"
+        ]
+      ],
+      "foreignKeys": [
+        {
+          "fields": [
+            "organizationId"
+          ],
+          "references": {
+            "entity": "Organization",
+            "fields": [
+              "id"
+            ]
+          },
+          "onDelete": "restrict"
+        }
+      ]
+    }
+  ]
+}

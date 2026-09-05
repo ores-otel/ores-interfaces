@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ores:schema-ir:v1",
+  "title": "Ores portable relational schema IR v1",
+  "$comment": "Structural validation only. The ores-lib-core semantic compiler must additionally validate reserved names, name uniqueness, ranges, primary-key presence/nullability, foreign-key arity/uniqueness/types/delete policy, and emitted-name collisions. Unknown metadata is forbidden. No migration execution is authorized.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "databaseSchema",
+    "entities"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "ores.schema-ir.v1"
+    },
+    "databaseSchema": {
+      "$ref": "#/$defs/sqlIdentifier"
+    },
+    "entities": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/entity"
+      }
+    }
+  },
+  "$defs": {
+    "sqlIdentifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,62}$"
+    },
+    "fieldName": {
+      "type": "string",
+      "pattern": "^[a-z][A-Za-z0-9]{0,62}$"
+    },
+    "modelName": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Za-z0-9]{0,62}$"
+    },
+    "key": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/fieldName"
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "column",
+        "type",
+        "required",
+        "nullable"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/fieldName"
+        },
+        "column": {
+          "$ref": "#/$defs/sqlIdentifier"
+        },
+        "type": {
+          "enum": [
+            "string",
+            "uuid",
+            "int32",
+            "boolean"
+          ]
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "minLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "minimum": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "maximum": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "string"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "minLength": false,
+              "maxLength": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "int32"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "minimum": false,
+              "maximum": false
+            }
+          }
+        }
+      ]
+    },
+    "foreignKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fields",
+        "references"
+      ],
+      "properties": {
+        "fields": {
+          "$ref": "#/$defs/key"
+        },
+        "references": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entity",
+            "fields"
+          ],
+          "properties": {
+            "entity": {
+              "$ref": "#/$defs/modelName"
+            },
+            "fields": {
+              "$ref": "#/$defs/key"
+            }
+          }
+        },
+        "onDelete": {
+          "description": "Explicit PostgreSQL delete action. Omission is the backwards-compatible noAction default; new declarations should set this property.",
+          "enum": [
+            "noAction",
+            "restrict",
+            "cascade",
+            "setNull"
+          ]
+        }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "table",
+        "fields",
+        "primaryKey"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/modelName"
+        },
+        "table": {
+          "$ref": "#/$defs/sqlIdentifier"
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "primaryKey": {
+          "$ref": "#/$defs/key"
+        },
+        "uniqueKeys": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/key"
+          }
+        },
+        "indexes": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/key"
+          }
+        },
+        "foreignKeys": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/foreignKey"
+          }
+        }
+      }
+    }
+  }
+}
