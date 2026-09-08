@@ -7,97 +7,56 @@
   "routeAuthority": "https://github.com/ORESoftware/api-docs",
   "type": "object",
   "oneOf": [
-    {
-      "$ref": "#/$defs/RequestMeta"
-    },
-    {
-      "$ref": "#/$defs/PageQuery"
-    },
-    {
-      "$ref": "#/$defs/ProblemDetails"
-    }
+    { "$ref": "#/$defs/RequestMeta" },
+    { "$ref": "#/$defs/PageQuery" },
+    { "$ref": "#/$defs/ProblemDetails" }
   ],
   "$defs": {
     "RequestMeta": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "RequestMeta",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "requestId",
-        "traceId"
-      ],
+      "required": ["requestId", "traceId"],
       "properties": {
-        "requestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "traceId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        },
-        "locale": {
-          "type": "string",
-          "minLength": 2,
-          "maxLength": 64
-        }
+        "requestId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "traceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "locale": { "type": "string", "minLength": 2, "maxLength": 64 }
       }
     },
     "PageQuery": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "PageQuery",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "limit"
-      ],
+      "required": ["limit"],
       "properties": {
-        "limit": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 100,
-          "default": 50
-        },
-        "cursor": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 512
-        }
+        "limit": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 },
+        "cursor": { "type": "string", "minLength": 1, "maxLength": 512 }
       }
     },
     "ProblemDetails": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ProblemDetails",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "type",
-        "title",
-        "status",
-        "requestId"
-      ],
+      "required": ["type", "title", "status", "requestId"],
       "properties": {
-        "type": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 512
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 256
-        },
-        "status": {
-          "type": "integer",
-          "minimum": 400,
-          "maximum": 599
-        },
-        "detail": {
-          "type": "string",
-          "maxLength": 4096
-        },
-        "requestId": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
-        }
+        "type": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "status": { "type": "integer", "minimum": 400, "maximum": 599 },
+        "detail": { "type": "string", "maxLength": 4096 },
+        "requestId": { "type": "string", "minLength": 1, "maxLength": 128 }
       }
+    },
+    "PublicValidationContract": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "PublicValidationContract",
+      "oneOf": [
+        { "$ref": "RequestMeta" },
+        { "$ref": "PageQuery" },
+        { "$ref": "ProblemDetails" }
+      ]
     }
   },
   "x-ores-routeBindings": []
