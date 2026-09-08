@@ -17,3 +17,6 @@ zed_modules/
 # Local temporary directories and repository-owned worktrees
 tmp/
 temp/
+
+# Immutable CI tool checkouts; never an authored source copy.
+.deps/
