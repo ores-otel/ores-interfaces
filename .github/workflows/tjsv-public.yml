@@ -36,17 +36,36 @@ jobs:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
+      - name: Validate the package-owned TJSV source lock
+        id: tjsv-lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const lock = JSON.parse(fs.readFileSync('validation/tjsv/source-lock.json', 'utf8'));
+          const keys = Object.keys(lock).sort();
+          if (JSON.stringify(keys) !== JSON.stringify(['repository', 'revision', 'schema'])) process.exit(2);
+          if (lock.schema !== 'ores.tjsv-source-lock/v1') process.exit(2);
+          if (lock.repository !== 'ORESoftware/typespec-json-schema-validator') process.exit(2);
+          if (!/^[0-9a-f]{40}$/.test(lock.revision)) process.exit(2);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,
+            `repository=${lock.repository}\nrevision=${lock.revision}\n`);
+          NODE
+
       - name: Check out reviewed TJSV consumer-verification source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          repository: ORESoftware/typespec-json-schema-validator
-          ref: d60d0d79d83e075077382623ec9e23a401ab601f
+          repository: ${{ steps.tjsv-lock.outputs.repository }}
+          ref: ${{ steps.tjsv-lock.outputs.revision }}
           path: .deps/tjsv
           persist-credentials: false
           show-progress: false
 
       - name: Verify exact TJSV revision
-        run: test "$(git -C .deps/tjsv rev-parse HEAD)" = "d60d0d79d83e075077382623ec9e23a401ab601f"
+        env:
+          EXPECTED_TJSV: ${{ steps.tjsv-lock.outputs.revision }}
+        run: test "$(git -C .deps/tjsv rev-parse HEAD)" = "$EXPECTED_TJSV"
 
       - name: Install pinned Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
