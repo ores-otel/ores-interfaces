@@ -11,7 +11,7 @@ JSON Schema pointers remain compatible. Object closure stays additionalPropertie
 not a silent replacement with unevaluatedProperties. Runtime implementations and
 other contract families are not certified by this gate.
 
-Provision `.deps/tjsv` at `4473504c4c9d2831d825919f70c03994d8ce01d2` and run
+Provision `.deps/tjsv` at `d60d0d79d83e075077382623ec9e23a401ab601f` and run
 `npm ci --prefix .deps/tjsv` (the canonical flags2env addon needs its install hook).
 Then run `node validation/tjsv/admission.mjs` and
 `node --test validation/tjsv/admission.test.mjs`.
