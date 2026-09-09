@@ -9,7 +9,15 @@ import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
 export const SOURCE_ROOT = resolve(import.meta.dirname, '../..');
-export const VALIDATOR_REVISION = 'd60d0d79d83e075077382623ec9e23a401ab601f';
+export const SOURCE_LOCK_PATH = 'validation/tjsv/source-lock.json';
+const sourceLockDocument = JSON.parse(await readFile(new URL('./source-lock.json', import.meta.url), 'utf8'));
+assert.deepEqual(Object.keys(sourceLockDocument).sort(), ['repository', 'revision', 'schema']);
+assert.equal(sourceLockDocument.schema, 'ores.tjsv-source-lock/v1');
+assert.equal(sourceLockDocument.repository, 'ORESoftware/typespec-json-schema-validator');
+assert.match(sourceLockDocument.revision, /^[0-9a-f]{40}$/, 'TJSV revision must be an immutable lowercase Git commit');
+export const SOURCE_LOCK = Object.freeze({ ...sourceLockDocument });
+export const VALIDATOR_REPOSITORY = SOURCE_LOCK.repository;
+export const VALIDATOR_REVISION = SOURCE_LOCK.revision;
 export const DECLARATIONS = Object.freeze([
   'Ores.Validation.PageQuery', 'Ores.Validation.ProblemDetails',
   'Ores.Validation.PublicValidationContract', 'Ores.Validation.RequestMeta',
@@ -18,6 +26,7 @@ export const SOURCE_PATHS = Object.freeze({
   typespec: 'validation/typespec/validation.tsp',
   authoredSchema: 'validation/public-contracts.v1.json',
   corpus: 'validation/tjsv/public-corpus.json',
+  sourceLock: SOURCE_LOCK_PATH,
 });
 export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
@@ -91,13 +100,14 @@ export async function withPublicAdmission({ sourceRoot = SOURCE_ROOT,
     throw new Error(`public contract admission stopped: ${detail.slice(0, 12000)}`, { cause: error });
   }
   await verifyCurrentEvidence(validatorRoot, paths);
-  // Bind the original committed corpus, not only materialized instance copies.
+  // Bind the original committed corpus and source lock, not only materialized instance copies.
   for (const [key, path] of Object.entries(SOURCE_PATHS))
     assert.equal(await readFile(join(sourceRoot, path), 'utf8'), originals[key], `source changed during admission: ${path}`);
   const [report, contractIr, verification] = await Promise.all([paths.report, paths.ir, paths.verification]
     .map(async (path) => JSON.parse(await readFile(path, 'utf8'))));
   const summary = Object.freeze({ schema: 'ores.shared-public-admission/v1', status: 'passed',
-    validatorRevision: VALIDATOR_REVISION, irId: contractIr.irId, runId: report.runId,
+    validatorRepository: VALIDATOR_REPOSITORY, validatorRevision: VALIDATOR_REVISION,
+    irId: contractIr.irId, runId: report.runId,
     declarations: DECLARATIONS, recordedCases: cases.length,
     sourceDigests: Object.fromEntries(Object.entries(originals).map(([key, text]) => [key, sha256(text)])) });
   // The operating system or ephemeral CI runner owns cleanup of this invocation-specific
