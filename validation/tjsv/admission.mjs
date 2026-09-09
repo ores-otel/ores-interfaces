@@ -19,6 +19,7 @@ export const SOURCE_LOCK = Object.freeze({ ...sourceLockDocument });
 export const VALIDATOR_REPOSITORY = SOURCE_LOCK.repository;
 export const VALIDATOR_REVISION = SOURCE_LOCK.revision;
 export const DECLARATIONS = Object.freeze([
+  'Ores.Validation.GitHubActionsBuildLogEvent', 'Ores.Validation.GitHubActionsLogStream',
   'Ores.Validation.PageQuery', 'Ores.Validation.ProblemDetails',
   'Ores.Validation.PublicValidationContract', 'Ores.Validation.RequestMeta',
 ]);
