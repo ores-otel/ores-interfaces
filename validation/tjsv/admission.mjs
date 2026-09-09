@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
 export const SOURCE_ROOT = resolve(import.meta.dirname, '../..');
-export const VALIDATOR_REVISION = '2281843126ab644607b11cf8281d84f382d68dfc';
+export const VALIDATOR_REVISION = 'd60d0d79d83e075077382623ec9e23a401ab601f';
 export const DECLARATIONS = Object.freeze([
   'Ores.Validation.PageQuery', 'Ores.Validation.ProblemDetails',
   'Ores.Validation.PublicValidationContract', 'Ores.Validation.RequestMeta',
