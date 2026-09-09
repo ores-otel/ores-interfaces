@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 
 const exec = promisify(execFile);
 export const SOURCE_ROOT = resolve(import.meta.dirname, '../..');
-export const VALIDATOR_REVISION = '4473504c4c9d2831d825919f70c03994d8ce01d2';
+export const VALIDATOR_REVISION = '2281843126ab644607b11cf8281d84f382d68dfc';
 export const DECLARATIONS = Object.freeze([
   'Ores.Validation.PageQuery', 'Ores.Validation.ProblemDetails',
   'Ores.Validation.PublicValidationContract', 'Ores.Validation.RequestMeta',
@@ -70,43 +70,40 @@ export async function withPublicAdmission({ sourceRoot = SOURCE_ROOT,
     [key, await readFile(join(sourceRoot, path), 'utf8')])));
   const cases = validateCorpus(JSON.parse(originals.corpus));
   const work = await mkdtemp(join(tmpdir(), 'ores-public-admission-'));
-  try {
-    const instances = join(work, 'instances');
-    for (const entry of cases) {
-      const dir = join(instances, entry.model, entry.valid ? 'valid' : 'invalid');
-      await mkdir(dir, { recursive: true });
-      await writeFile(join(dir, `${entry.id}.json`), JSON.stringify(entry.value));
-    }
-    const paths = Object.freeze({ typespec: join(sourceRoot, SOURCE_PATHS.typespec),
-      authoredSchema: join(sourceRoot, SOURCE_PATHS.authoredSchema),
-      report: join(work, 'report.json'), ir: join(work, 'contract-ir.json'),
-      generatedSchema: join(work, 'witness/typespec.generated.schema.json'),
-      verification: join(work, 'verification.json') });
-    try {
-      await runValidator(validatorRoot, ['check', `--typespec=${paths.typespec}`,
-        `--schema=${paths.authoredSchema}`, `--instances=${instances}`, '--probes=true', '--max-probes=64',
-        '--seal-object-schemas=false', `--output-dir=${join(work, 'witness')}`,
-        `--report=${paths.report}`, `--contract-ir=${paths.ir}`, '--quiet']);
-    } catch (error) {
-      const detail = await readFile(paths.report, 'utf8').catch(() => error.stderr || error.message);
-      throw new Error(`public contract admission stopped: ${detail.slice(0, 12000)}`, { cause: error });
-    }
-    await verifyCurrentEvidence(validatorRoot, paths);
-    // Bind the original committed corpus, not only materialized instance copies.
-    for (const [key, path] of Object.entries(SOURCE_PATHS))
-      assert.equal(await readFile(join(sourceRoot, path), 'utf8'), originals[key], `source changed during admission: ${path}`);
-    const [report, contractIr, verification] = await Promise.all([paths.report, paths.ir, paths.verification]
-      .map(async (path) => JSON.parse(await readFile(path, 'utf8'))));
-    const summary = Object.freeze({ schema: 'ores.shared-public-admission/v1', status: 'passed',
-      validatorRevision: VALIDATOR_REVISION, irId: contractIr.irId, runId: report.runId,
-      declarations: DECLARATIONS, recordedCases: cases.length,
-      sourceDigests: Object.fromEntries(Object.entries(originals).map(([key, text]) => [key, sha256(text)])) });
-    return await consume(Object.freeze({ summary, paths, report, contractIr, verification,
-      sources: Object.freeze(originals), validatorRoot }));
-  } finally {
-    // Delete only this invocation's newly allocated directory, never caller source paths.
-    await rm(work, { recursive: true, force: true });
+  const instances = join(work, 'instances');
+  for (const entry of cases) {
+    const dir = join(instances, entry.model, entry.valid ? 'valid' : 'invalid');
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, `${entry.id}.json`), JSON.stringify(entry.value));
   }
+  const paths = Object.freeze({ typespec: join(sourceRoot, SOURCE_PATHS.typespec),
+    authoredSchema: join(sourceRoot, SOURCE_PATHS.authoredSchema),
+    report: join(work, 'report.json'), ir: join(work, 'contract-ir.json'),
+    generatedSchema: join(work, 'witness/typespec.generated.schema.json'),
+    verification: join(work, 'verification.json') });
+  try {
+    await runValidator(validatorRoot, ['check', `--typespec=${paths.typespec}`,
+      `--schema=${paths.authoredSchema}`, `--instances=${instances}`, '--probes=true', '--max-probes=64',
+      '--seal-object-schemas=false', `--output-dir=${join(work, 'witness')}`,
+      `--report=${paths.report}`, `--contract-ir=${paths.ir}`, '--quiet']);
+  } catch (error) {
+    const detail = await readFile(paths.report, 'utf8').catch(() => error.stderr || error.message);
+    throw new Error(`public contract admission stopped: ${detail.slice(0, 12000)}`, { cause: error });
+  }
+  await verifyCurrentEvidence(validatorRoot, paths);
+  // Bind the original committed corpus, not only materialized instance copies.
+  for (const [key, path] of Object.entries(SOURCE_PATHS))
+    assert.equal(await readFile(join(sourceRoot, path), 'utf8'), originals[key], `source changed during admission: ${path}`);
+  const [report, contractIr, verification] = await Promise.all([paths.report, paths.ir, paths.verification]
+    .map(async (path) => JSON.parse(await readFile(path, 'utf8'))));
+  const summary = Object.freeze({ schema: 'ores.shared-public-admission/v1', status: 'passed',
+    validatorRevision: VALIDATOR_REVISION, irId: contractIr.irId, runId: report.runId,
+    declarations: DECLARATIONS, recordedCases: cases.length,
+    sourceDigests: Object.fromEntries(Object.entries(originals).map(([key, text]) => [key, sha256(text)])) });
+  // The operating system or ephemeral CI runner owns cleanup of this invocation-specific
+  // temporary directory. The admission library never recursively deletes filesystem state.
+  return await consume(Object.freeze({ summary, paths, report, contractIr, verification,
+    sources: Object.freeze(originals), validatorRoot }));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
