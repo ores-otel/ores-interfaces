@@ -6,7 +6,7 @@ import test from 'node:test';
 import { SOURCE_ROOT, SOURCE_PATHS, validateCorpus, withPublicAdmission, verifyCurrentEvidence } from './admission.mjs';
 
 const corpus = JSON.parse(await readFile(join(SOURCE_ROOT, SOURCE_PATHS.corpus), 'utf8'));
-test('recorded corpus covers every declaration in both directions', () => assert.equal(validateCorpus(corpus).length, 31));
+test('recorded corpus covers every declaration in both directions', () => assert.equal(validateCorpus(corpus).length, 43));
 for (const [name, mutate] of [
   ['duplicate identities', (c) => c.push(c[0])],
   ['unknown declaration', (c) => { c[0].model = 'TrustedActor'; }],
@@ -25,9 +25,10 @@ test('real compiler and canonical CLI verification fail closed', async (t) => {
   await cp(join(SOURCE_ROOT, 'validation'), join(root, 'validation'), { recursive: true });
   const options = { sourceRoot: root, validatorRoot: join(SOURCE_ROOT, '.deps/tjsv') };
   await withPublicAdmission(options, async (evidence) => {
-    await t.test('admits all four real shared declarations', () => {
+    await t.test('admits all six real shared declarations', () => {
       assert.equal(evidence.summary.status, 'passed');
-      assert.equal(evidence.summary.recordedCases, 31);
+      assert.equal(evidence.summary.recordedCases, 43);
+      assert.equal(evidence.summary.declarations.length, 6);
       assert.equal(evidence.contractIr.admission.scope.complete, true);
       assert.deepEqual(evidence.contractIr.declarations.map((x) => x.id).sort(), evidence.summary.declarations);
     });
