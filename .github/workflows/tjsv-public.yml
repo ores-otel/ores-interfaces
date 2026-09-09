@@ -79,8 +79,8 @@ jobs:
       - name: Verify current public-contract admission policy
         run: node validation/tjsv/admission.mjs
 
-      - name: Run public-contract admission regressions
-        run: node --test validation/tjsv/admission.test.mjs
+      - name: Run all public-contract admission regressions
+        run: node --test validation/tjsv/*.test.mjs
 
       - name: Require clean authored and toolchain sources
         run: |
