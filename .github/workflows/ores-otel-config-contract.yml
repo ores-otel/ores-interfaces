@@ -24,7 +24,8 @@ jobs:
         with:
           persist-credentials: false
       - name: Parse example TOML
-        run: python3 - <<'PY'
+        run: |
+          python3 - <<'PY'
           import pathlib, tomllib
           p = pathlib.Path('examples/.ores-otel.toml')
           doc = tomllib.loads(p.read_text())
