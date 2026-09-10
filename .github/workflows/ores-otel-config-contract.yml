@@ -1,0 +1,46 @@
+name: ores-otel-config-contract
+
+on:
+  pull_request:
+    paths:
+      - "contracts/ores-otel-config/**"
+      - "examples/.ores-otel.toml"
+      - ".github/workflows/ores-otel-config-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "contracts/ores-otel-config/**"
+      - "examples/.ores-otel.toml"
+      - ".github/workflows/ores-otel-config-contract.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Parse example TOML
+        run: python3 - <<'PY'
+          import pathlib, tomllib
+          p = pathlib.Path('examples/.ores-otel.toml')
+          doc = tomllib.loads(p.read_text())
+          assert doc['version'] == 1
+          assert doc['strict'] is True
+          assert doc['flags2env']['contract'] == '.cli-flags.toml'
+          assert doc['flags2env']['require_audit'] is True
+          assert doc['flags2env']['precedence'] == 'argv-over-env'
+          for binding in doc['env']:
+              if binding.get('secret'):
+                  assert 'default' not in binding, f"secret default: {binding['name']}"
+          PY
+      - name: Admit independent TypeSpec and JSON Schema authorities
+        uses: ORESoftware/typespec-json-schema-validator@4a5d049218adc2740d4cf78f612caf7f38f6f64c
+        with:
+          typespec: contracts/ores-otel-config/ores-otel-config.tsp
+          schema: contracts/ores-otel-config/ores-otel-config.schema.json
+          report: .typespec-json-schema-validator/ores-otel-config-report.json
+          output_dir: .typespec-json-schema-validator/ores-otel-config-generated
