@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+from copy import deepcopy
 import json
 import pathlib
 import re
-from typing import Any
+from typing import Any, Callable
 
 from jsonschema import Draft202012Validator
 
@@ -106,6 +107,40 @@ def validate_semantics(document: dict[str, Any]) -> None:
                     require(fields[local_name]["nullable"] is True, f"entity {entity['name']} {label} setNull requires nullable field {local_name}")
 
 
+def expect_semantic_failure(example: dict[str, Any], mutate: Callable[[dict[str, Any]], None], expected: str) -> None:
+    candidate = deepcopy(example)
+    mutate(candidate)
+    try:
+        validate_semantics(candidate)
+    except AssertionError as error:
+        require(expected in str(error), f"negative control failed for the wrong reason: {error}")
+        return
+    raise AssertionError(f"negative control unexpectedly passed; expected {expected!r}")
+
+
+def validate_negative_controls(example: dict[str, Any]) -> None:
+    def nullable_primary_key(candidate: dict[str, Any]) -> None:
+        candidate["entities"][0]["fields"][0]["nullable"] = True
+
+    def duplicate_column(candidate: dict[str, Any]) -> None:
+        candidate["entities"][1]["fields"][1]["column"] = "id"
+
+    def non_candidate_fk_target(candidate: dict[str, Any]) -> None:
+        candidate["entities"][1]["foreignKeys"][0]["references"]["fields"] = ["slug", "id"]
+
+    def mismatched_fk_type(candidate: dict[str, Any]) -> None:
+        candidate["entities"][1]["fields"][1]["type"] = "string"
+
+    def invalid_set_null(candidate: dict[str, Any]) -> None:
+        candidate["entities"][1]["foreignKeys"][0]["onDelete"] = "setNull"
+
+    expect_semantic_failure(example, nullable_primary_key, "must be non-nullable")
+    expect_semantic_failure(example, duplicate_column, "duplicate SQL column names")
+    expect_semantic_failure(example, non_candidate_fk_target, "arity does not match target")
+    expect_semantic_failure(example, mismatched_fk_type, "type mismatch")
+    expect_semantic_failure(example, invalid_set_null, "setNull requires nullable field")
+
+
 def main() -> None:
     schema = load_json(SCHEMA_PATH)
     example = load_json(EXAMPLE_PATH)
@@ -116,7 +151,8 @@ def main() -> None:
     require(not errors, "example.json failed structural validation: " + "; ".join(error.message for error in errors[:5]))
     validate_authoring_surface(schema, types_source)
     validate_semantics(example)
-    print("schema-ir-v1 admission passed: Draft 2020-12, authoring parity, and relational semantics")
+    validate_negative_controls(example)
+    print("schema-ir-v1 admission passed: Draft 2020-12, authoring parity, relational semantics, and negative controls")
 
 
 if __name__ == "__main__":
