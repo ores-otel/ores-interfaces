@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ores-otel.github.io/contracts/ores-otel-config/v1/authored.schema.json",
+  "$defs": {
+    "OresOtelMode": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "OresOtelMode",
+      "type": "string",
+      "enum": ["client", "server", "hybrid"]
+    },
+    "EnvKind": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "EnvKind",
+      "type": "string",
+      "enum": ["string", "bool", "integer", "double", "json", "url"]
+    },
+    "Flags2EnvPrecedence": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Flags2EnvPrecedence",
+      "type": "string",
+      "enum": ["argv-over-env"]
+    },
+    "Flags2EnvConfig": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "Flags2EnvConfig",
+      "type": "object",
+      "properties": {
+        "contract": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "require_audit": { "type": "boolean" },
+        "precedence": { "$ref": "Flags2EnvPrecedence" }
+      },
+      "required": ["contract", "require_audit", "precedence"],
+      "unevaluatedProperties": false
+    },
+    "EnvBinding": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "EnvBinding",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Z_][A-Z0-9_]*$"
+        },
+        "kind": { "$ref": "EnvKind" },
+        "required": { "type": "boolean" },
+        "secret": { "type": "boolean" },
+        "default": { "type": "string", "maxLength": 8192 },
+        "description": { "type": "string", "maxLength": 512 }
+      },
+      "required": ["name", "key", "kind", "required", "secret"],
+      "unevaluatedProperties": false
+    },
+    "OresOtelClientConfig": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "OresOtelClientConfig",
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "service_name_binding": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "log_filter_binding": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "sample_ratio_binding": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "include_trace_context_binding": { "type": "string", "minLength": 1, "maxLength": 64 }
+      },
+      "required": ["enabled"],
+      "unevaluatedProperties": false
+    },
+    "OresOtelServerConfig": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "OresOtelServerConfig",
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "service_name_binding": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "log_filter_binding": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "sample_ratio_binding": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "otlp_endpoint_binding": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "otlp_headers_binding": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "batch_max_queue_binding": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "redact_fields_binding": { "type": "string", "minLength": 1, "maxLength": 64 }
+      },
+      "required": ["enabled"],
+      "unevaluatedProperties": false
+    },
+    "OresOtelConfig": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "OresOtelConfig",
+      "type": "object",
+      "properties": {
+        "version": { "type": "integer", "minimum": 1, "maximum": 1 },
+        "mode": { "$ref": "OresOtelMode" },
+        "strict": { "type": "boolean" },
+        "flags2env": { "$ref": "Flags2EnvConfig" },
+        "env": { "type": "array", "items": { "$ref": "EnvBinding" } },
+        "client": { "$ref": "OresOtelClientConfig" },
+        "server": { "$ref": "OresOtelServerConfig" }
+      },
+      "required": ["version", "mode", "strict", "flags2env", "env"],
+      "unevaluatedProperties": false
+    }
+  }
+}

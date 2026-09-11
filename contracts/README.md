@@ -2,6 +2,7 @@
 
 `ores-platform/v1/schema.json` is the canonical portfolio wire contract.
 `shared-auth-admin/v1/schema.json` is the canonical Shared Auth administration contract.
+`ores-startup/v1/schema.json` is the canonical responsive-launch diagnostic event contract.
 Bindings must preserve:
 
 1. tenant and audience boundaries;
@@ -10,6 +11,12 @@ Bindings must preserve:
 4. no raw biometric material;
 5. no token or secret values in errors, logs, or security events;
 6. inactive introspection responses by default when state is unknown.
+
+Responsive-launch diagnostics additionally require a per-launch correlation id, bounded
+phase/dependency identifiers, explicit elapsed time and retry count, a fixed event/outcome
+vocabulary, and `redaction_version: 1`. They may identify an exception type and retain a
+small locally redacted stack, but never an error message, URL, token, credential, device
+identifier, email address, or other user data. The local diagnostic buffer must be bounded.
 
 Shared Auth directory grants additionally require:
 

@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-08-31T21:30:05.000Z",
+  "app_name": "pmap_flutter",
+  "launch_id": "m5ex2o7k-1",
+  "event": "startup_phase_completed",
+  "level": "error",
+  "phase": "session_restore",
+  "dependency": "shared_auth",
+  "outcome": "timed_out",
+  "elapsed_ms": 5000,
+  "retry_count": 0,
+  "redaction_version": 1
+}

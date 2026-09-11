@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/ores-otel/ores-interfaces/validation/authorities/server/contracts.json",
+  "title": "ORES telemetry server-only validation contracts",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/TrustedActor"
+    },
+    {
+      "$ref": "#/$defs/ServerRequestContext"
+    },
+    {
+      "$ref": "#/$defs/InternalCommand"
+    }
+  ],
+  "$defs": {
+    "TrustedActor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "userId",
+        "roles"
+      ],
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "tenantId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ServerRequestContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestId",
+        "traceId",
+        "userId",
+        "roles"
+      ],
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "traceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "locale": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 64
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "tenantId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sourceIp": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "InternalCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operationId",
+        "context"
+      ],
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "context": {
+          "$ref": "#/$defs/ServerRequestContext"
+        }
+      }
+    }
+  }
+}

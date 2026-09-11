@@ -1,0 +1,89 @@
+name: TJSV shared public contracts
+
+on:
+  pull_request:
+    paths:
+      - "validation/**"
+      - ".github/workflows/tjsv-public.yml"
+  push:
+    branches: [main]
+    paths:
+      - "validation/**"
+      - ".github/workflows/tjsv-public.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ores-otel-public-tjsv-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  public-contracts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          show-progress: false
+
+      - name: Verify exact candidate revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Validate the package-owned TJSV source lock
+        id: tjsv-lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const lock = JSON.parse(fs.readFileSync('validation/tjsv/source-lock.json', 'utf8'));
+          const keys = Object.keys(lock).sort();
+          if (JSON.stringify(keys) !== JSON.stringify(['repository', 'revision', 'schema'])) process.exit(2);
+          if (lock.schema !== 'ores.tjsv-source-lock/v1') process.exit(2);
+          if (lock.repository !== 'ORESoftware/typespec-json-schema-validator') process.exit(2);
+          if (!/^[0-9a-f]{40}$/.test(lock.revision)) process.exit(2);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,
+            `repository=${lock.repository}\nrevision=${lock.revision}\n`);
+          NODE
+
+      - name: Check out reviewed TJSV consumer-verification source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ steps.tjsv-lock.outputs.repository }}
+          ref: ${{ steps.tjsv-lock.outputs.revision }}
+          path: .deps/tjsv
+          persist-credentials: false
+          show-progress: false
+
+      - name: Verify exact TJSV revision
+        env:
+          EXPECTED_TJSV: ${{ steps.tjsv-lock.outputs.revision }}
+        run: test "$(git -C .deps/tjsv rev-parse HEAD)" = "$EXPECTED_TJSV"
+
+      - name: Install pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22.16.0"
+          package-manager-cache: false
+
+      - name: Install the validator lockfile graph
+        run: npm ci --prefix .deps/tjsv --no-audit --no-fund
+
+      - name: Verify current public-contract admission policy
+        run: node validation/tjsv/admission.mjs
+
+      - name: Run all public-contract admission regressions
+        run: node --test validation/tjsv/*.test.mjs
+
+      - name: Require clean authored and toolchain sources
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD
+          git -C .deps/tjsv diff --exit-code HEAD

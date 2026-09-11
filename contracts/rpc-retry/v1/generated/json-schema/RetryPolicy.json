@@ -1,0 +1,36 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "RetryPolicy.json",
+    "type": "object",
+    "properties": {
+        "max_attempts": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+        },
+        "timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600000
+        },
+        "initial_backoff_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60000
+        },
+        "max_backoff_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60000
+        }
+    },
+    "required": [
+        "max_attempts",
+        "timeout_ms",
+        "initial_backoff_ms",
+        "max_backoff_ms"
+    ],
+    "unevaluatedProperties": {
+        "not": {}
+    }
+}

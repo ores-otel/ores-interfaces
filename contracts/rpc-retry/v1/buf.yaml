@@ -1,0 +1,10 @@
+version: v2
+modules:
+  - path: generated/protobuf
+lint:
+  use:
+    - STANDARD
+  except:
+    # TypeSpec emits ores/rpc/v1.proto for package ores.rpc.v1. The package and
+    # file name are stable; only Buf's preferred extra directory segment differs.
+    - PACKAGE_DIRECTORY_MATCH

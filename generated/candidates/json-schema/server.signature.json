@@ -1,0 +1,98 @@
+{
+  "models": {
+    "InternalCommand": {
+      "closed": true,
+      "fields": {
+        "context": {
+          "kind": "ref",
+          "ref": "ServerRequestContext",
+          "required": true
+        },
+        "idempotencyKey": {
+          "kind": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "required": false
+        },
+        "operationId": {
+          "kind": "string",
+          "maxLength": 256,
+          "minLength": 1,
+          "required": true
+        }
+      }
+    },
+    "ServerRequestContext": {
+      "closed": true,
+      "fields": {
+        "locale": {
+          "kind": "string",
+          "maxLength": 64,
+          "minLength": 2,
+          "required": false
+        },
+        "requestId": {
+          "kind": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "required": true
+        },
+        "roles": {
+          "items": {
+            "kind": "string"
+          },
+          "kind": "array",
+          "required": true
+        },
+        "sourceIp": {
+          "kind": "string",
+          "maxLength": 64,
+          "minLength": 1,
+          "required": false
+        },
+        "tenantId": {
+          "kind": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "required": false
+        },
+        "traceId": {
+          "kind": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "required": true
+        },
+        "userId": {
+          "kind": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "required": true
+        }
+      }
+    },
+    "TrustedActor": {
+      "closed": true,
+      "fields": {
+        "roles": {
+          "items": {
+            "kind": "string"
+          },
+          "kind": "array",
+          "required": true
+        },
+        "tenantId": {
+          "kind": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "required": false
+        },
+        "userId": {
+          "kind": "string",
+          "maxLength": 128,
+          "minLength": 1,
+          "required": true
+        }
+      }
+    }
+  }
+}
