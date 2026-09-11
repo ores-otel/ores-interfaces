@@ -1,15 +1,17 @@
-name: ores-otel-config-contract
+name: legacy-ores-otel-config-snapshot
 
 on:
   pull_request:
     paths:
       - "contracts/ores-otel-config/**"
+      - "contracts/README.md"
       - "examples/.ores-otel.toml"
       - ".github/workflows/ores-otel-config-contract.yml"
   push:
     branches: [main]
     paths:
       - "contracts/ores-otel-config/**"
+      - "contracts/README.md"
       - "examples/.ores-otel.toml"
       - ".github/workflows/ores-otel-config-contract.yml"
 
@@ -17,13 +19,33 @@ permissions:
   contents: read
 
 jobs:
-  parity:
+  legacy-snapshot:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
-      - name: Parse example TOML
+
+      - name: Require retired source blobs to remain immutable
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object contracts/ores-otel-config/ores-otel-config.tsp)" = \
+            d523b16440654f8e7c0c01c16d028f433a24ebe8
+          test "$(git hash-object contracts/ores-otel-config/ores-otel-config.schema.json)" = \
+            a4119fa13c5692a36ebfe2e92fb3972c94c94b07
+          test "$(git hash-object examples/.ores-otel.toml)" = \
+            1493432fa4b911f8e1d8193bad0497ae9fdb7310
+
+      - name: Require canonical authority relocation notice
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'ores-otel/ores-otel-interfaces' contracts/ores-otel-config/README.md
+          grep -F 'b544872d13323de7be19a9d5879c419149679f7a' contracts/ores-otel-config/README.md
+          grep -F 'not the current `.ores-otel.toml` v1 authority' contracts/README.md
+
+      - name: Parse historical example TOML
         run: |
           python3 - <<'PY'
           import pathlib, tomllib
@@ -38,10 +60,11 @@ jobs:
               if binding.get('secret'):
                   assert 'default' not in binding, f"secret default: {binding['name']}"
           PY
-      - name: Admit independent TypeSpec and JSON Schema authorities
+
+      - name: Re-prove historical peer parity without promoting it to live authority
         uses: ORESoftware/typespec-json-schema-validator@4a5d049218adc2740d4cf78f612caf7f38f6f64c
         with:
           typespec: contracts/ores-otel-config/ores-otel-config.tsp
           schema: contracts/ores-otel-config/ores-otel-config.schema.json
-          report: .typespec-json-schema-validator/ores-otel-config-report.json
-          output_dir: .typespec-json-schema-validator/ores-otel-config-generated
+          report: .typespec-json-schema-validator/legacy-ores-otel-config-report.json
+          output_dir: .typespec-json-schema-validator/legacy-ores-otel-config-generated
