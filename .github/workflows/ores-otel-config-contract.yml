@@ -44,7 +44,7 @@ jobs:
           grep -F 'ores-otel/ores-otel-interfaces' contracts/ores-otel-config/README.md
           grep -F 'b544872d13323de7be19a9d5879c419149679f7a' contracts/ores-otel-config/README.md
           grep -F 'ores-otel/ores-otel-interfaces' contracts/README.md
-          grep -F 'immutable historical DEN-390 snapshot' contracts/README.md
+          grep -F 'historical DEN-390 snapshot' contracts/README.md
 
       - name: Parse historical example TOML
         run: |
