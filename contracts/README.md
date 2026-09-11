@@ -67,3 +67,18 @@ remain dependency-free; `scripts/check_contracts.py` fails CI if a binding or re
 type disappears. JSON Schema remains authoritative when a language type and wire rule differ.
 in place after a stable release. The still-draft Shared Auth revocation control-plane definitions
 preserve all existing v1 read-projection semantics.
+
+## `.ores-otel.toml` authority relocation
+
+`contracts/ores-otel-config/` and `examples/.ores-otel.toml` are retained as an immutable
+historical DEN-390 snapshot. They are **not** the current `.ores-otel.toml` v1 authority.
+
+The later DEN-4253 promotion established `ores-otel/ores-otel-interfaces` as the dedicated
+configuration-authority repository. New consumers must use its independently authored
+`contracts/ores-otel-config.v1/main.tsp` and
+`contracts/ores-otel-config.v1/authored.schema.json`, admitted fail-closed with TJSV. See
+`contracts/ores-otel-config/README.md` for the pinned promotion commit and historical blob
+identities.
+
+Do not evolve the retired envelope in this repository or combine it with the dedicated
+`common/client/server` model as though both were concurrent editable authorities.
