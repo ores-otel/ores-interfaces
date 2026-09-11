@@ -97,7 +97,11 @@ model MetricPoint {
 
 @id("ProcessSnapshot")
 model ProcessSnapshot {
+  @minValue(0)
   cpu_time_seconds: float64;
+
+  @minValue(0)
+  @maxValue(1)
   cpu_utilization: float64;
 
   @minValue(0)
@@ -106,6 +110,8 @@ model ProcessSnapshot {
   @minValue(0)
   memory_virtual_bytes: int64;
 
+  @minValue(0)
+  @maxValue(1)
   memory_utilization?: float64;
 
   @minValue(0)
@@ -164,6 +170,8 @@ model FilesystemSnapshot {
   @minValue(0)
   available_bytes: int64;
 
+  @minValue(0)
+  @maxValue(1)
   utilization: float64;
 
   @minValue(0)
@@ -219,6 +227,9 @@ model ServicePerformanceSnapshot {
   active_requests: int64;
 
   latency_seconds: HistogramPoint;
+
+  @minValue(0)
+  @maxValue(1)
   saturation_ratio?: float64;
 }
 
