@@ -29,9 +29,12 @@ are required to validate this schema.
   Unique keys, indexes, and foreign keys use **field names**, not SQL column names.
   Composite-key column order is preserved. A foreign-key target must exactly match
   an ordered declared primary/unique key and have matching scalar types/arity.
-- Foreign keys use `MATCH SIMPLE`, `ON UPDATE NO ACTION`, and `ON DELETE NO ACTION`.
-  Nullable composite references retain PostgreSQL's MATCH SIMPLE semantics; no
-  cascade, deferrability, partial-index, or cross-row behavior is inferred.
+- Foreign keys use `MATCH SIMPLE` and `ON UPDATE NO ACTION`. `onDelete` is explicit
+  when a declaration needs `restrict`, `cascade`, or `setNull`; omission preserves
+  the v1 `NO ACTION` default for backwards compatibility. `setNull` is valid only
+  when every referencing field is nullable. Nullable composite references retain
+  PostgreSQL's MATCH SIMPLE semantics. Deferrability, partial-index behavior, and
+  other cross-row policy are never inferred.
 - String length means Unicode code points, not bytes or grapheme clusters. NUL is
   not PostgreSQL TEXT-compatible. Full encoding/serialization interoperability
   still requires a PostgreSQL acceptance run and real language serializers.
@@ -39,8 +42,9 @@ are required to validate this schema.
 The JSON Schema intentionally validates structure, not every relationship between
 values. The semantic compiler additionally checks duplicate names, bounds,
 reserved/system names, primary-key rules, reference integrity, scalar compatibility,
-and generated SQL relation-name collisions. Structural validation alone is not
-permission to generate, migrate, deploy, or authorize anything.
+foreign-key delete-policy preconditions, and generated SQL relation-name collisions.
+Structural validation alone is not permission to generate, migrate, deploy, or
+authorize anything.
 
 ## Architecture and adoption
 
