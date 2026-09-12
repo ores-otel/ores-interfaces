@@ -18,9 +18,18 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Check out exact head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Verify checked-out revision
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - name: Set up Node.js 22
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -39,6 +48,10 @@ jobs:
       - name: Validate contracts and regression fixtures
         run: |
           "$RUNNER_TEMP/contracts-venv/bin/python" scripts/check_contracts.py
+      - name: Validate portable schema IR structure and semantics
+        run: |
+          "$RUNNER_TEMP/contracts-venv/bin/python" -m py_compile scripts/check_schema_ir_v1.py
+          "$RUNNER_TEMP/contracts-venv/bin/python" scripts/check_schema_ir_v1.py
       - name: Check RPC contract fixtures (not compiler certification)
         run: node --test scripts/rpc-contract.test.mjs
       - name: Install pinned TypeSpec, Protobuf, and schema toolchain
@@ -54,9 +67,18 @@ jobs:
       matrix:
         language: [rust, go, typescript, python, dart, java, swift]
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Check out exact head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Verify checked-out revision
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
       - if: matrix.language == 'dart'
         uses: dart-lang/setup-dart@65eb853c7ba17dde3be364c3d2858773e7144260
       - name: Test native target
