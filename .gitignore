@@ -3,7 +3,6 @@
 .env.*
 !.env.example
 node_modules/
-tsp-output/
 target/
 __pycache__/
 *.pyc
@@ -14,9 +13,14 @@ build/
 zed_modules/
 .vendor/.zed/
 
+# >>> ores fleet hygiene — managed block, edits below are overwritten >>>
+tmp/temp/
+tmp/worktrees/
+# <<< ores fleet hygiene <<<
+
+tsp-output/
 # Local temporary directories and repository-owned worktrees
 tmp/
 temp/
-
 # Immutable CI tool checkouts; never an authored source copy.
 .deps/
