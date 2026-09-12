@@ -24,3 +24,6 @@ tmp/
 temp/
 # Immutable CI tool checkouts; never an authored source copy.
 .deps/
+# Repository-local temporary data and authorized Git worktrees
+tmp/worktrees
+temp/worktrees
