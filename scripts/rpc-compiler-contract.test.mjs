@@ -49,15 +49,7 @@ function regularFiles(root, current = root) {
 }
 
 function semanticFiles(root) {
-  const files = regularFiles(root);
-  const documentationOnly = files.filter((path) => path === 'readme.md');
-  const semantic = files.filter((path) => path !== 'readme.md');
-  assert.equal(
-    files.length,
-    semantic.length + documentationOnly.length,
-    'only the TypeSpec emitter readme may be non-semantic compiler output',
-  );
-  return semantic;
+  return regularFiles(root).filter((path) => path !== 'readme.md');
 }
 
 function compile(label) {
@@ -100,11 +92,11 @@ test('TypeSpec generation is deterministic and matches committed artifacts', () 
   ];
 
   // TypeSpec 1.16 may emit a documentation-only readme. It is never a reviewed
-  // contract projection, so admit only that exact optional path while keeping
-  // the semantic artifact inventory closed and byte-for-byte deterministic.
+  // contract projection, so remove only that exact path from the semantic
+  // inventory; any other unexpected file remains visible and fails deepEqual.
   assert.deepEqual(semanticFiles(first.output), expectedFiles);
   assert.deepEqual(semanticFiles(second.output), expectedFiles);
-  assert.deepEqual(regularFiles(committed), expectedFiles);
+  assert.deepEqual(semanticFiles(committed), expectedFiles);
 
   for (const path of expectedFiles) {
     const generatedOnce = readFileSync(join(first.output, path));
