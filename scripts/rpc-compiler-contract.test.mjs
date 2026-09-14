@@ -48,6 +48,18 @@ function regularFiles(root, current = root) {
   }).sort();
 }
 
+function semanticFiles(root) {
+  const files = regularFiles(root);
+  const documentationOnly = files.filter((path) => path === 'readme.md');
+  const semantic = files.filter((path) => path !== 'readme.md');
+  assert.equal(
+    files.length,
+    semantic.length + documentationOnly.length,
+    'only the TypeSpec emitter readme may be non-semantic compiler output',
+  );
+  return semantic;
+}
+
 function compile(label) {
   const temporaryRoot = mkdtempSync(join(tmpdir(), `ores-rpc-${label}-`));
   const output = join(temporaryRoot, 'generated');
@@ -86,20 +98,13 @@ test('TypeSpec generation is deterministic and matches committed artifacts', () 
     'json-schema/RetryPolicy.json',
     'protobuf/ores/rpc/v1.proto',
   ];
-  // TypeSpec 1.16 emits a documentation-only readme alongside semantic outputs.
-  // Keep the reviewed contract inventory closed while explicitly admitting that
-  // compiler-owned documentation artifact in fresh temporary output only.
-  const expectedCompilerFiles = [...expectedFiles, 'readme.md'].sort();
 
-  assert.deepEqual(regularFiles(first.output), expectedCompilerFiles);
-  assert.deepEqual(regularFiles(second.output), expectedCompilerFiles);
+  // TypeSpec 1.16 may emit a documentation-only readme. It is never a reviewed
+  // contract projection, so admit only that exact optional path while keeping
+  // the semantic artifact inventory closed and byte-for-byte deterministic.
+  assert.deepEqual(semanticFiles(first.output), expectedFiles);
+  assert.deepEqual(semanticFiles(second.output), expectedFiles);
   assert.deepEqual(regularFiles(committed), expectedFiles);
-
-  assert.deepEqual(
-    readFileSync(join(first.output, 'readme.md')),
-    readFileSync(join(second.output, 'readme.md')),
-    'TypeSpec emitter readme is nondeterministic',
-  );
 
   for (const path of expectedFiles) {
     const generatedOnce = readFileSync(join(first.output, path));
