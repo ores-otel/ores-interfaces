@@ -86,10 +86,20 @@ test('TypeSpec generation is deterministic and matches committed artifacts', () 
     'json-schema/RetryPolicy.json',
     'protobuf/ores/rpc/v1.proto',
   ];
+  // TypeSpec 1.16 emits a documentation-only readme alongside semantic outputs.
+  // Keep the reviewed contract inventory closed while explicitly admitting that
+  // compiler-owned documentation artifact in fresh temporary output only.
+  const expectedCompilerFiles = [...expectedFiles, 'readme.md'].sort();
 
-  assert.deepEqual(regularFiles(first.output), expectedFiles);
-  assert.deepEqual(regularFiles(second.output), expectedFiles);
+  assert.deepEqual(regularFiles(first.output), expectedCompilerFiles);
+  assert.deepEqual(regularFiles(second.output), expectedCompilerFiles);
   assert.deepEqual(regularFiles(committed), expectedFiles);
+
+  assert.deepEqual(
+    readFileSync(join(first.output, 'readme.md')),
+    readFileSync(join(second.output, 'readme.md')),
+    'TypeSpec emitter readme is nondeterministic',
+  );
 
   for (const path of expectedFiles) {
     const generatedOnce = readFileSync(join(first.output, path));
