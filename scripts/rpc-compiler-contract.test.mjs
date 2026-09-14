@@ -48,6 +48,10 @@ function regularFiles(root, current = root) {
   }).sort();
 }
 
+function semanticFiles(root) {
+  return regularFiles(root).filter((path) => path !== 'readme.md');
+}
+
 function compile(label) {
   const temporaryRoot = mkdtempSync(join(tmpdir(), `ores-rpc-${label}-`));
   const output = join(temporaryRoot, 'generated');
@@ -87,9 +91,12 @@ test('TypeSpec generation is deterministic and matches committed artifacts', () 
     'protobuf/ores/rpc/v1.proto',
   ];
 
-  assert.deepEqual(regularFiles(first.output), expectedFiles);
-  assert.deepEqual(regularFiles(second.output), expectedFiles);
-  assert.deepEqual(regularFiles(committed), expectedFiles);
+  // TypeSpec 1.16 may emit a documentation-only readme. It is never a reviewed
+  // contract projection, so remove only that exact path from the semantic
+  // inventory; any other unexpected file remains visible and fails deepEqual.
+  assert.deepEqual(semanticFiles(first.output), expectedFiles);
+  assert.deepEqual(semanticFiles(second.output), expectedFiles);
+  assert.deepEqual(semanticFiles(committed), expectedFiles);
 
   for (const path of expectedFiles) {
     const generatedOnce = readFileSync(join(first.output, path));
