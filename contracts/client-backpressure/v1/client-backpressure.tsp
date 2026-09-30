@@ -3,6 +3,11 @@ using TypeSpec.JsonSchema;
 
 namespace OresOtel.ClientBackpressure.V1;
 
+@minLength(1)
+@maxLength(128)
+@pattern("^[A-Za-z0-9_.:/-]+$")
+scalar SafeIdentifier extends string;
+
 @id("BackpressurePhase")
 enum BackpressurePhase {
   queued: "queued",
@@ -36,11 +41,8 @@ enum BackpressureReason {
 
 @id("BrowserBackpressureEvent")
 model BrowserBackpressureEvent {
-  @minValue(1) @maxValue(1)
-  schema_version: int32;
-
-  @minLength(24) @maxLength(24) @pattern("^ores\\.client\\.backpressure$")
-  event_name: string;
+  schema_version: 1;
+  event_name: "ores.client.backpressure";
 
   phase: BackpressurePhase;
   transport: BackpressureTransport;
@@ -70,20 +72,17 @@ model BrowserBackpressureEvent {
   @minValue(0) @maxValue(9007199254740991)
   recommended_next_request_after_ms?: uint64;
 
-  @minLength(1) @maxLength(128) @pattern("^[A-Za-z0-9_.:/-]+$")
-  policy_version?: string;
+  policy_version?: SafeIdentifier;
 
   @minLength(1) @maxLength(20) @pattern("^(0|[1-9][0-9]{0,19})$")
   quota_fence?: string;
 
   @maxItems(8)
-  limiting_policy_ids?: (@minLength(1) @maxLength(128) @pattern("^[A-Za-z0-9_.:/-]+$") string)[];
+  limiting_policy_ids?: SafeIdentifier[];
 
   @minValue(0) @maxValue(9007199254740991)
   attempt?: uint64;
 
-  @minLength(1) @maxLength(128) @pattern("^[A-Za-z0-9_.:/-]+$")
-  operation?: string;
-
+  operation?: SafeIdentifier;
   idempotent?: boolean;
 }
