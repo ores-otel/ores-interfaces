@@ -57,7 +57,6 @@
     "limiting_policy_ids": {
       "type": "array",
       "maxItems": 8,
-      "uniqueItems": true,
       "items": { "$ref": "#/$defs/safeIdentifier" }
     },
     "attempt": { "$ref": "#/$defs/safeInteger" },
