@@ -1,0 +1,66 @@
+name: apm-telemetry-contract
+
+on:
+  pull_request:
+    paths:
+      - "contracts/ores-apm/**"
+      - "scripts/check_apm_contract.py"
+      - ".github/workflows/apm-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "contracts/ores-apm/**"
+      - "scripts/check_apm_contract.py"
+      - ".github/workflows/apm-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact candidate
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Parse authored schema and fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          schema = json.loads(Path('contracts/ores-apm/v1/ores-apm.schema.json').read_text())
+          fixture = json.loads(Path('contracts/ores-apm/v1/example.snapshot.json').read_text())
+          required_defs = {
+              'ApmCapabilityStatus', 'MetricKind', 'ProfileKind', 'Attribute',
+              'Exemplar', 'HistogramBucket', 'HistogramPoint', 'MetricPoint',
+              'ProcessSnapshot', 'FilesystemSnapshot', 'RuntimeMetric',
+              'RuntimeSnapshot', 'ServicePerformanceSnapshot', 'ProfileCapability',
+              'ProfileSummary', 'CorrelationContext', 'ApmCapabilitySet', 'ApmSnapshot'
+          }
+          assert set(schema['$defs']) == required_defs
+          assert fixture['schema_version'] == 1
+          PY
+
+      - name: Run semantic admission and negative controls
+        run: python3 scripts/check_apm_contract.py
+
+      - name: Admit independent TypeSpec and JSON Schema authorities
+        uses: ORESoftware/typespec-json-schema-validator@4a5d049218adc2740d4cf78f612caf7f38f6f64c
+        with:
+          typespec: contracts/ores-apm/v1/ores-apm.tsp
+          schema: contracts/ores-apm/v1/ores-apm.schema.json
+          report: .typespec-json-schema-validator/ores-apm-v1-report.json
+          output_dir: .typespec-json-schema-validator/ores-apm-v1-generated
+
+      - name: Prove authored sources are unchanged
+        run: git diff --exit-code -- .

@@ -1,0 +1,49 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "RetryAttempt.json",
+    "type": "object",
+    "properties": {
+        "attempts_completed": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+        },
+        "elapsed_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3600000
+        },
+        "code": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16
+        },
+        "cancelled": {
+            "type": "boolean"
+        },
+        "replay_safe": {
+            "type": "boolean"
+        },
+        "jitter_permille": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+        },
+        "retry_after_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3600000
+        }
+    },
+    "required": [
+        "attempts_completed",
+        "elapsed_ms",
+        "code",
+        "cancelled",
+        "replay_safe",
+        "jitter_permille"
+    ],
+    "unevaluatedProperties": {
+        "not": {}
+    }
+}

@@ -1,0 +1,60 @@
+name: schema-ir-v1
+
+on:
+  pull_request:
+    paths:
+      - "contracts/schema-ir/v1/**"
+      - "scripts/check_schema_ir_v1.py"
+      - ".github/workflows/schema-ir-v1.yml"
+  push:
+    branches: [main]
+    paths:
+      - "contracts/schema-ir/v1/**"
+      - "scripts/check_schema_ir_v1.py"
+      - ".github/workflows/schema-ir-v1.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify checked-out revision
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Install pinned Draft 2020-12 validator
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: "1"
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/schema-ir-venv"
+          "$RUNNER_TEMP/schema-ir-venv/bin/python" -m pip install \
+            --only-binary=:all: \
+            --require-hashes \
+            --requirement scripts/requirements-contracts.lock
+
+      - name: Check semantic admission script syntax
+        run: "$RUNNER_TEMP/schema-ir-venv/bin/python" -m py_compile scripts/check_schema_ir_v1.py
+
+      - name: Validate Draft 2020-12 structure and relational semantics
+        run: "$RUNNER_TEMP/schema-ir-venv/bin/python" scripts/check_schema_ir_v1.py
+
+      - name: Reject generated-authority promotion
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -E 'generated.*(authority|authoritative)|authority.*generated' contracts/schema-ir/v1 --include='*.md' --include='*.json' --include='*.d.ts'

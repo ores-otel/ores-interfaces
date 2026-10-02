@@ -2,6 +2,7 @@
 
 `ores-platform/v1/schema.json` is the canonical portfolio wire contract.
 `shared-auth-admin/v1/schema.json` is the canonical Shared Auth administration contract.
+`ores-startup/v1/schema.json` is the canonical responsive-launch diagnostic event contract.
 Bindings must preserve:
 
 1. tenant and audience boundaries;
@@ -10,6 +11,12 @@ Bindings must preserve:
 4. no raw biometric material;
 5. no token or secret values in errors, logs, or security events;
 6. inactive introspection responses by default when state is unknown.
+
+Responsive-launch diagnostics additionally require a per-launch correlation id, bounded
+phase/dependency identifiers, explicit elapsed time and retry count, a fixed event/outcome
+vocabulary, and `redaction_version: 1`. They may identify an exception type and retain a
+small locally redacted stack, but never an error message, URL, token, credential, device
+identifier, email address, or other user data. The local diagnostic buffer must be bounded.
 
 Shared Auth directory grants additionally require:
 
@@ -60,3 +67,18 @@ remain dependency-free; `scripts/check_contracts.py` fails CI if a binding or re
 type disappears. JSON Schema remains authoritative when a language type and wire rule differ.
 in place after a stable release. The still-draft Shared Auth revocation control-plane definitions
 preserve all existing v1 read-projection semantics.
+
+## `.ores-otel.toml` authority relocation
+
+`contracts/ores-otel-config/` and `examples/.ores-otel.toml` are retained as an immutable
+historical DEN-390 snapshot. They are **not** the current `.ores-otel.toml` v1 authority.
+
+The later DEN-4253 promotion established `ores-otel/ores-otel-interfaces` as the dedicated
+configuration-authority repository. New consumers must use its independently authored
+`contracts/ores-otel-config.v1/main.tsp` and
+`contracts/ores-otel-config.v1/authored.schema.json`, admitted fail-closed with TJSV. See
+`contracts/ores-otel-config/README.md` for the pinned promotion commit and historical blob
+identities.
+
+Do not evolve the retired envelope in this repository or combine it with the dedicated
+`common/client/server` model as though both were concurrent editable authorities.

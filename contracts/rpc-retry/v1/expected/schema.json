@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ores:rpc:retry:v1:expected",
+  "$comment": "Reviewed compatibility fixture for normalized SDK values; not compiler output, a release artifact, raw ProtoJSON, or a persistence schema.",
+  "$ref": "#/$defs/RetryInput",
+  "$defs": {
+    "RetryPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600000
+        },
+        "initial_backoff_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000
+        },
+        "max_backoff_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000
+        }
+      },
+      "required": [
+        "max_attempts",
+        "timeout_ms",
+        "initial_backoff_ms",
+        "max_backoff_ms"
+      ]
+    },
+    "RetryAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "attempts_completed": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "elapsed_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000
+        },
+        "code": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "cancelled": {
+          "type": "boolean"
+        },
+        "replay_safe": {
+          "type": "boolean"
+        },
+        "jitter_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "retry_after_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000
+        }
+      },
+      "required": [
+        "attempts_completed",
+        "elapsed_ms",
+        "code",
+        "cancelled",
+        "replay_safe",
+        "jitter_permille"
+      ]
+    },
+    "RetryInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "$ref": "#/$defs/RetryPolicy"
+        },
+        "attempt": {
+          "$ref": "#/$defs/RetryAttempt"
+        }
+      },
+      "required": [
+        "policy",
+        "attempt"
+      ]
+    },
+    "RetryDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "retry": {
+          "type": "boolean"
+        },
+        "delay_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000
+        },
+        "reason": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        }
+      },
+      "required": [
+        "retry",
+        "delay_ms",
+        "reason"
+      ]
+    }
+  }
+}
