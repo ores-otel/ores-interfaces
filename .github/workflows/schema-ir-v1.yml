@@ -48,10 +48,12 @@ jobs:
             --requirement scripts/requirements-contracts.lock
 
       - name: Check semantic admission script syntax
-        run: "$RUNNER_TEMP/schema-ir-venv/bin/python" -m py_compile scripts/check_schema_ir_v1.py
+        run: |
+          "$RUNNER_TEMP/schema-ir-venv/bin/python" -m py_compile scripts/check_schema_ir_v1.py
 
       - name: Validate Draft 2020-12 structure and relational semantics
-        run: "$RUNNER_TEMP/schema-ir-venv/bin/python" scripts/check_schema_ir_v1.py
+        run: |
+          "$RUNNER_TEMP/schema-ir-venv/bin/python" scripts/check_schema_ir_v1.py
 
       - name: Reject generated-authority promotion
         shell: bash
