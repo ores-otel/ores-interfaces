@@ -32,6 +32,8 @@ ADMIN_EXAMPLES = ROOT / "contracts/shared-auth-admin/v1/examples"
 ADMIN_VALID_FIXTURES = ROOT / "contracts/shared-auth-admin/v1/fixtures/valid"
 ADMIN_INVALID_FIXTURES = ROOT / "contracts/shared-auth-admin/v1/fixtures/invalid"
 SHARED_AUTH_SCHEMA = ROOT / "contracts/shared-auth/v1/schema.json"
+BACKPRESSURE_SCHEMA = ROOT / "contracts/client-backpressure/v1/client-backpressure.schema.json"
+BACKPRESSURE_TYPESPEC = ROOT / "contracts/client-backpressure/v1/client-backpressure.tsp"
 REVOCATION_REQUEST_EXAMPLE = (
     ROOT / "contracts/shared-auth/v1/examples/revoke-sessions-request.json"
 )
@@ -1160,6 +1162,58 @@ def validate_shared_auth_contract() -> None:
             assert name in source, f"{binding['language']} binding missing {name}"
 
 
+
+def validate_client_backpressure_contract() -> None:
+    schema = load_json(BACKPRESSURE_SCHEMA)
+    Draft202012Validator.check_schema(schema)
+    assert schema["additionalProperties"] is False
+    properties = schema["properties"]
+
+    forbidden = {
+        "payload",
+        "body",
+        "request_body",
+        "response_body",
+        "headers",
+        "cookies",
+        "cookie",
+        "authorization",
+        "token",
+        "access_token",
+        "refresh_token",
+        "jwt",
+        "email",
+        "ip",
+        "ip_address",
+        "url",
+        "raw_identity",
+        "principal_id",
+        "session_id",
+    }
+    assert not (forbidden & set(properties)), sorted(forbidden & set(properties))
+
+    for name in (
+        "observed_at_unix_ms",
+        "queued_at_unix_ms",
+        "queue_age_ms",
+        "scheduled_delay_ms",
+        "queue_depth",
+        "queue_bytes",
+        "retry_after_ms",
+        "recommended_next_request_after_ms",
+        "attempt",
+    ):
+        reference = properties[name]["$ref"]
+        assert reference == "#/$defs/safeInteger"
+    assert schema["$defs"]["safeInteger"]["maximum"] == 9007199254740991
+    assert properties["limiting_policy_ids"]["maxItems"] == 8
+    assert properties["quota_fence"]["pattern"] == "^(0|[1-9][0-9]{0,19})$"
+
+    typespec = BACKPRESSURE_TYPESPEC.read_text(encoding="utf-8")
+    for token in forbidden:
+        assert token not in typespec, f"forbidden backpressure field token in TypeSpec: {token}"
+
+
 def validate_startup_contract() -> None:
     schema = load_json(STARTUP_SCHEMA)
     assert schema["$schema"].endswith("2020-12/schema")
@@ -1205,6 +1259,7 @@ def main() -> int:
 
     validate_admin_contract()
     validate_shared_auth_contract()
+    validate_client_backpressure_contract()
     validate_startup_contract()
 
     zpkg = (ROOT / ".zpkg.toml").read_text(encoding="utf-8")
@@ -1231,7 +1286,7 @@ def main() -> int:
         "contracts valid: "
         f"methods={len(methods)} languages={len(present)} revocation_scopes={len(REVOCATION_SCOPES)} "
         "admin_contract=shared-auth-admin/v1 domain_contract=shared-auth/v1 "
-        "startup_contract=ores-startup/v1"
+        "startup_contract=ores-startup/v1 backpressure_contract=ores.client.backpressure/v1"
     )
     return 0
 
