@@ -14,3 +14,7 @@
 The initial `cases/bootstrap.v1.json` case establishes this repository-level authority boundary only. It does **not** prove domain-level runtime equivalence. Add contract-family-specific cases as normalized inputs plus normalized expected receipts, then make each supported implementation execute the same corpus.
 
 Where a contract family already has an instance corpus, conformance runners should reuse or reference those exact bytes instead of creating divergent runtime-local copies.
+
+## Fail-closed schema security receipt
+
+`node conformance/security-boundary-check.mjs` emits a machine-readable `ores.security-boundary-receipt/v1` and exits nonzero when the authored platform contract weakens its closed shapes, credential write-only annotation, local biometric-verification constraints, delegation bound, or native OTel trace/span ID patterns. `node --test conformance/security-boundary-check.test.mjs` runs positive and mutation-negative controls. These are *schema integrity* checks, not proof that deployed identity providers, SDKs, or guest-language backends enforce the runtime policy.
