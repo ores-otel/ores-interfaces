@@ -52,6 +52,11 @@ jobs:
         run: |
           "$RUNNER_TEMP/contracts-venv/bin/python" -m py_compile scripts/check_schema_ir_v1.py
           "$RUNNER_TEMP/contracts-venv/bin/python" scripts/check_schema_ir_v1.py
+      - name: Audit fail-closed security schema boundaries
+        run: |
+          node --check conformance/security-boundary-check.mjs
+          node --test conformance/security-boundary-check.test.mjs
+          node conformance/security-boundary-check.mjs
       - name: Check RPC contract fixtures (not compiler certification)
         run: node --test scripts/rpc-contract.test.mjs
       - name: Install pinned TypeSpec, Protobuf, and schema toolchain
